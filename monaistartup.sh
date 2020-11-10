@@ -3,8 +3,10 @@
 # Exit on error
 set -e
 
+# Options
 upgrade_python=true
 ssh_server=true
+pulseaudio=true
 
 # Set password hashes. Create with:
 #   bash: openssl passwd -1
@@ -15,6 +17,9 @@ jupy_pw='argon2:$argon2id$v=19$m=10240,t=10,p=8$k9uoAnn3KFfJWO3SNMvYmQ$r8E9Snfzk
 # Remove default monai folder and mount our own
 rm -rf /opt/monai/*
 cd /root
+
+# Colourful bash prompt
+echo "PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\[\033[1;31m\]\$\[\033[0m\] '" >> ~/.bashrc
 
 # Set paths
 export PYTHONPATH="/root/MONAI:/root/ptproto"
@@ -46,6 +51,10 @@ if [ "$upgrade_python" = true ] ; then
 	python -m pip install -r ~/MONAI/requirements-dev.txt
 fi
 
+# Compile MONAI cuda code
+cd ~/MONAI
+BUILD_MONAI=1 python setup.py develop
+
 # SSH server
 if [ "$ssh_server" = true ]; then
 	# Install ssh server
@@ -60,6 +69,14 @@ if [ "$ssh_server" = true ]; then
 	service ssh start
 fi
 
+# Pulseaudio (send audio back to local terminal)
+if [ "$pulseaudio" = true ]; then
+        apt update
+	apt install -y pulseaudio espeak
+	echo 'export PULSE_SERVER="tcp:localhost:24713"' >> ~/.bashrc
+	pulseaudio --start
+fi
+
 # Use 0000 umask for shared folders (needs to happen after starting sshd service)
 umask 0000
 
@@ -69,7 +86,8 @@ python -m pip install ipywidgets
 
 # Dark jupyter theme
 python -m pip install jupyterthemes
-jt -t oceans16 -T -N
+#jt -t oceans16 -T -N # Blue theme
+jt -t monokai -f fira -fs 13 -nf ptsans -nfs 11 -N -kl -cursw 5 -cursc r -cellw 95% -T # Green theme
 
 # Start jupyter
 jupyter notebook --ip 0.0.0.0 --no-browser --allow-root --notebook-dir="~" --NotebookApp.password=${jupy_pw}
