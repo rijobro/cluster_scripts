@@ -31,7 +31,8 @@ for ((i=0;i<\${#_groups[@]};++i)); do
 done
 EOF
 
-# Copy in the public key so that it can be added to the authorized keys in the container
+# Copy in the authorized and  public keys so that it can be added to the authorized keys in the container
+cat ~/.ssh/authorized_keys > authorized_keys
 cp ~/.ssh/id_rsa.pub .
 
 cat - <<EOF > MonaiDockerfile
@@ -40,28 +41,22 @@ FROM $base_image
 # Install sshd
 RUN apt update && apt install -y openssh-server nano && rm -rf /var/lib/apt/lists/*
 
-# Remove default monai folder (so we can mount our own)
-RUN rm -rf /opt/monai/*
-
-# Reinstall conda
-RUN conda install anaconda-clean -y
-RUN anaconda-clean -y
-RUN rm -rf ~/.conda ~/.jupyter /opt/conda || true
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-RUN bash ./Miniconda3-latest-Linux-x86_64.sh -p /opt/conda -b
-RUN rm Miniconda3-latest-Linux-x86_64.sh
-
-# Install requirements
-RUN python -m pip install -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/requirements.txt
-RUN python -m pip install -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/requirements-dev.txt
-RUN python -m pip install -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/docs/requirements.txt
-
-# Add user and add to same groups as local
+# Get all the variables we'll need
 ARG GROUPS
 ARG GIDS
 ARG USER_ID
 ARG GROUP_ID
 ARG UNAME
+
+# Remove default monai folder (so we can mount our own)
+RUN rm -rf /opt/monai/*
+
+# Delete conda
+RUN conda install anaconda-clean -y
+RUN anaconda-clean -y
+RUN rm -rf /opt/conda
+
+# Add user and add to same groups as local
 RUN addgroup --gid \${GROUP_ID} \${UNAME}
 RUN adduser --ingroup \${UNAME} --system --shell /bin/bash --uid \${USER_ID} \${UNAME}
 COPY create_user_groups.sh .
@@ -78,13 +73,23 @@ RUN touch /var/run/motd.new
 WORKDIR /home/\${UNAME}
 USER \${UNAME}
 
-# Colourful bash
-RUN echo "PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\[\033[1;31m\]\$\[\033[0m\] '" >> ~/.bashrc
+# Reinstall conda
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+RUN bash ./Miniconda3-latest-Linux-x86_64.sh -p /home/\${UNAME}/.conda -b
+RUN rm Miniconda3-latest-Linux-x86_64.sh
 
 # Set paths
 ENV PYTHONPATH "~/MONAI:~/ptproto"
 ENV MONAI_DATA_DIRECTORY "~/data/MONAI"
-ENV PATH "/opt/conda/bin:/home/\${UNAME}/.local/bin:$PATH"
+ENV PATH "/home/\${UNAME}/.conda/bin:/home/\${UNAME}/.local/bin:$PATH"
+
+# Install requirements
+RUN python -m pip install -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/requirements.txt
+RUN python -m pip install -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/requirements-dev.txt
+RUN python -m pip install -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/docs/requirements.txt
+
+# Colourful bash
+RUN echo "PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\[\033[1;31m\]\$\[\033[0m\] '" >> /home/\${UNAME}/.bashrc
 
 # Set up SSHD to be run as non-sudo user
 RUN mkdir -p /home/\${UNAME}/.ssh
@@ -100,8 +105,13 @@ RUN echo "UsePAM no" >> /home/\${UNAME}/.ssh/sshd_config
 RUN echo "Subsystem   sftp    /usr/lib/ssh/sftp-server" >> /home/\${UNAME}/.ssh/sshd_config
 RUN echo "PidFile /home/\${UNAME}/.ssh/sshd.pid" >> /home/\${UNAME}/.ssh/sshd_config
 RUN echo "PrintMotd no" >> /home/\${UNAME}/.ssh/sshd_config
+
+# merge authorized keys and id_rsa. Latter means you can connect from machine that
+# created the container, and the former means you can connect from all the places
+# that can connect to that machine.
+COPY authorized_keys .
 COPY id_rsa.pub .
-RUN cat ./id_rsa.pub >> ~/.ssh/authorized_keys
+RUN paste -d "\n" authorized_keys id_rsa.pub > /home/\${UNAME}/.ssh/authorized_keys
 
 # Set up jupyter notebook
 RUN python -m pip install jupyterthemes ipywidgets
@@ -112,7 +122,7 @@ EXPOSE 2222
 
 COPY monaistartup.sh .
 
-CMD /usr/sbin/sshd -D -f ~/.ssh/sshd_config -E ~/.ssh/sshd.log
+CMD /usr/sbin/sshd -D -f /home/\${UNAME}/.ssh/sshd_config -E /home/\${UNAME}/.ssh/sshd.log
 
 EOF
 
@@ -133,4 +143,4 @@ docker tag $im_name ${docker_uname}/${im_name}
 docker push ${docker_uname}/${im_name}:latest
 
 # Cleanup
-rm create_user_groups.sh MonaiDockerfile id_rsa.pub
+rm create_user_groups.sh MonaiDockerfile id_rsa.pub authorized_keys
