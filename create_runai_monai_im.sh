@@ -19,12 +19,6 @@ trap cleanup EXIT
 # Move to current directory
 cd "$(dirname "$0")"
 
-#password=$1
-#if [ -z "$password" ]; then
-#	read -s -p "Enter root password: " password
-#fi
-#echo
-
 # This file is used to loop over all groups that the local user is part of,
 # create those groups in the container and add the user to those groups.
 cat - <<EOF > create_user_groups.sh
@@ -71,10 +65,8 @@ RUN adduser --ingroup \${UNAME} --system --shell /bin/bash --uid \${USER_ID} \${
 COPY create_user_groups.sh .
 RUN cat create_user_groups.sh
 RUN bash ./create_user_groups.sh "\$GROUPS" "\$GIDS" \${UNAME}
-#RUN printf "\${UNAME}:%s" "$user_pw" | chpasswd -e
-#RUN echo "\${UNAME}:$password" | chpasswd
-#RUN echo "root:$password" | chpasswd
-#RUN echo "+:\${UNAME}:ALL" >> /etc/security/access.conf
+RUN printf "\${UNAME}:%s" "$user_pw" | chpasswd -e
+RUN printf "root:%s" "$user_pw" | chpasswd -e
 
 RUN touch /var/run/motd.new
 
@@ -122,7 +114,7 @@ RUN rm authorized_keys id_rsa.pub
 # Set up jupyter notebook
 RUN python -m pip install --user jupyterthemes
 RUN jt -t oceans16 -T -N # Blue theme
-RUN jt -t monokai -f fira -fs 13 -nf ptsans -nfs 11 -N -kl -cursw 5 -cursc r -cellw 95% -T # Green theme
+#RUN jt -t monokai -f fira -fs 13 -nf ptsans -nfs 11 -N -kl -cursw 5 -cursc r -cellw 95% -T # Green theme
 
 # Pip install anything else
 RUN python -m pip install --user ipywidgets torchsummary
@@ -138,9 +130,9 @@ EOF
 # if you have experimental features enabled add --squash to ensure the password isn't cached by the build process
 docker build -t $im_name . \
 	-f MonaiDockerfile  \
-        --build-arg USER_ID=${UID} \
-        --build-arg GROUP_ID=$(id -g) \
-        --build-arg UNAME=$(whoami) \
+	--build-arg USER_ID=${UID} \
+	--build-arg GROUP_ID=$(id -g) \
+	--build-arg UNAME=$(whoami) \
 	--build-arg GROUPS="$(groups)" \
 	--build-arg GIDS="$(getent group $(groups) | awk -F: '{print $3}')"
 
@@ -150,6 +142,3 @@ docker build -t $im_name . \
 # Push image
 docker tag $im_name ${docker_uname}/${im_name}
 docker push ${docker_uname}/${im_name}:latest
-
-# Cleanup
-rm create_user_groups.sh MonaiDockerfile id_rsa.pub authorized_keys
