@@ -3,12 +3,14 @@
 set -e # stop on error
 
 # Some variables
-base_image=projectmonai/monai:latest
+base_image=nvcr.io/nvidia/pytorch:20.11-py3
+# base_image=nvidia/cuda:11.1-runtime-ubuntu18.04
+# base_image=projectmonai/monai:latest
 im_name=rb-monai
 docker_uname=rijobro
 
-# user pw hash created with: openssl passwd -1
-user_pw='$1$rI/6m9Sa$3MAazPOmNTJm2IUnnCHOl0'
+# user password
+password="monai"
 
 # cleanup
 function cleanup {
@@ -41,8 +43,8 @@ cp ~/.ssh/id_rsa.pub .
 cat - <<EOF > MonaiDockerfile
 FROM $base_image
 
-# Install sshd
-RUN apt update && apt install -y openssh-server nano && rm -rf /var/lib/apt/lists/*
+# Install required packages
+RUN apt update && apt upgrade -y && apt install -y openssh-server nano sudo && rm -rf /var/lib/apt/lists/*
 
 # Get all the variables we'll need
 ARG GROUPS
@@ -50,9 +52,7 @@ ARG GIDS
 ARG USER_ID
 ARG GROUP_ID
 ARG UNAME
-
-# Remove default monai folder (so we can mount our own)
-RUN rm -rf /opt/monai/*
+ARG PW
 
 # Delete conda
 RUN conda install anaconda-clean -y
@@ -60,13 +60,14 @@ RUN anaconda-clean -y
 RUN rm -rf /opt/conda
 
 # Add user and add to same groups as local
+COPY create_user_groups.sh .
 RUN addgroup --gid \${GROUP_ID} \${UNAME}
 RUN adduser --ingroup \${UNAME} --system --shell /bin/bash --uid \${USER_ID} \${UNAME}
-COPY create_user_groups.sh .
 RUN cat create_user_groups.sh
 RUN bash ./create_user_groups.sh "\$GROUPS" "\$GIDS" \${UNAME}
-RUN printf "\${UNAME}:%s" "$user_pw" | chpasswd -e
-RUN printf "root:%s" "$user_pw" | chpasswd -e
+RUN echo "root:$password" | chpasswd
+RUN echo "\${UNAME}:$password" | chpasswd
+RUN adduser \${UNAME} sudo
 
 RUN touch /var/run/motd.new
 
@@ -84,24 +85,26 @@ ENV PATH "/home/\${UNAME}/.conda/bin:/home/\${UNAME}/.local/bin:$PATH"
 RUN echo "export PATH=/home/\${UNAME}/.conda/bin:/home/\${UNAME}/.local/bin:$PATH" >> /home/\${UNAME}/.bashrc
 
 # Install requirements
-RUN python -m pip install -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/requirements.txt
-RUN python -m pip install -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/requirements-dev.txt
-RUN python -m pip install -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/docs/requirements.txt
+RUN python -m pip install -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/requirements.txt && \
+	python -m pip install -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/requirements-dev.txt && \
+	python -m pip install -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/docs/requirements.txt
 
 # Set up SSHD to be run as non-sudo user
-RUN mkdir -p /home/\${UNAME}/.ssh
-RUN ssh-keygen -f /home/\${UNAME}/.ssh/id_rsa -N '' -t rsa
-RUN ssh-keygen -f /home/\${UNAME}/.ssh/id_dsa -N '' -t dsa
-RUN echo "PasswordAuthentication yes" >> /home/\${UNAME}/.ssh/sshd_config
-RUN echo "Port 2222" >> /home/\${UNAME}/.ssh/sshd_config
-RUN echo "HostKey /home/\${UNAME}/.ssh/id_rsa" >> /home/\${UNAME}/.ssh/sshd_config
-RUN echo "HostKey /home/\${UNAME}/.ssh/id_dsa" >> /home/\${UNAME}/.ssh/sshd_config
-RUN echo "AuthorizedKeysFile  .ssh/authorized_keys" >> /home/\${UNAME}/.ssh/sshd_config
-RUN echo "ChallengeResponseAuthentication no" >> /home/\${UNAME}/.ssh/sshd_config
-RUN echo "UsePAM no" >> /home/\${UNAME}/.ssh/sshd_config
-RUN echo "Subsystem   sftp    /usr/lib/ssh/sftp-server" >> /home/\${UNAME}/.ssh/sshd_config
-RUN echo "PidFile /home/\${UNAME}/.ssh/sshd.pid" >> /home/\${UNAME}/.ssh/sshd_config
-RUN echo "PrintMotd no" >> /home/\${UNAME}/.ssh/sshd_config
+RUN mkdir -p /home/\${UNAME}/.ssh && \
+	ssh-keygen -f /home/\${UNAME}/.ssh/id_rsa -N '' -t rsa && \
+	ssh-keygen -f /home/\${UNAME}/.ssh/id_dsa -N '' -t dsa
+
+
+RUN echo "PasswordAuthentication yes" >> /home/\${UNAME}/.ssh/sshd_config && \
+	echo "Port 2222" >> /home/\${UNAME}/.ssh/sshd_config && \
+	echo "HostKey /home/\${UNAME}/.ssh/id_rsa" >> /home/\${UNAME}/.ssh/sshd_config && \
+	echo "HostKey /home/\${UNAME}/.ssh/id_dsa" >> /home/\${UNAME}/.ssh/sshd_config && \
+	echo "AuthorizedKeysFile  .ssh/authorized_keys" >> /home/\${UNAME}/.ssh/sshd_config && \
+	echo "ChallengeResponseAuthentication no" >> /home/\${UNAME}/.ssh/sshd_config && \
+	echo "UsePAM no" >> /home/\${UNAME}/.ssh/sshd_config && \
+	echo "Subsystem   sftp    /usr/lib/ssh/sftp-server" >> /home/\${UNAME}/.ssh/sshd_config && \
+	echo "PidFile /home/\${UNAME}/.ssh/sshd.pid" >> /home/\${UNAME}/.ssh/sshd_config && \
+	echo "PrintMotd no" >> /home/\${UNAME}/.ssh/sshd_config
 
 # merge authorized keys and id_rsa. Latter means you can connect from machine that
 # created the container, and the former means you can connect from all the places
