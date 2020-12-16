@@ -81,8 +81,10 @@ RUN bash ./Miniconda3-latest-Linux-x86_64.sh -p /home/\${UNAME}/.conda -b
 RUN rm Miniconda3-latest-Linux-x86_64.sh
 
 # Set paths
-ENV PATH "/home/\${UNAME}/.conda/bin:/home/\${UNAME}/.local/bin:$PATH"
-RUN echo "export PATH=/home/\${UNAME}/.conda/bin:/home/\${UNAME}/.local/bin:$PATH" >> /home/\${UNAME}/.bashrc
+ENV PATH "/home/\${UNAME}/.conda/bin:/home/\${UNAME}/.local/bin:\$PATH"
+RUN echo "export PATH=/home/\${UNAME}/.conda/bin:/home/\${UNAME}/.local/bin:\$PATH" >> /home/\${UNAME}/.bashrc
+RUN echo "export LD_LIBRARY_PATH=\${LD_LIBRARY_PATH}" >> /home/\${UNAME}/.bashrc
+RUN echo "source /home/\${UNAME}/.bashrc" >> /home/\${UNAME}/.bash_profile
 
 # Install requirements
 RUN python -m pip install -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/requirements.txt && \

@@ -50,3 +50,6 @@ while true; do
 	fi
 	sleep .5
 done
+
+# Terminal notification
+echo -e "\a"

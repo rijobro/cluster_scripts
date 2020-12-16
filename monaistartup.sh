@@ -18,7 +18,6 @@ jupy_pw='argon2:$argon2id$v=19$m=10240,t=10,p=8$k9uoAnn3KFfJWO3SNMvYmQ$r8E9Snfzk
 vnc_pw='monai1'
 
 # Mount our bash script
-echo "source ~/.bashrc" >> ~/.bash_profile
 echo "source ~/bash_profile/rich_bashrc.sh" >> ~/.bashrc
 
 # Colourful bash
