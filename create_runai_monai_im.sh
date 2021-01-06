@@ -122,7 +122,7 @@ RUN jt -t oceans16 -T -N # Blue theme
 #RUN jt -t monokai -f fira -fs 13 -nf ptsans -nfs 11 -N -kl -cursw 5 -cursc r -cellw 95% -T # Green theme
 
 # Pip install anything else
-RUN python -m pip install --user ipywidgets torchsummary
+RUN python -m pip install --user ipywidgets torchsummary scikit-learn
 
 COPY monaistartup.sh .
 
