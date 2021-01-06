@@ -42,7 +42,7 @@ fi
 
 # SSH server
 if [ "$ssh_server" = true ]; then
-	nohup /usr/sbin/sshd -D -f ~/.ssh/sshd_config -E ~/sshd.log &
+	nohup /usr/sbin/sshd -D -f ~/.ssh/sshd_config -E ~/.ssh/sshd.log &
 fi
 
 # Pulseaudio (send audio back to local terminal)
