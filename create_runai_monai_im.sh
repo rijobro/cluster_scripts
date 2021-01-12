@@ -3,7 +3,7 @@
 set -e # stop on error
 
 # Some variables
-base_image=nvcr.io/nvidia/pytorch:20.11-py3
+base_image=nvcr.io/nvidia/pytorch:20.12-py3
 # base_image=nvidia/cuda:11.1-runtime-ubuntu18.04
 # base_image=projectmonai/monai:latest
 im_name=rb-monai
