@@ -31,7 +31,7 @@ git config --global user.email "33289025+rijobro@users.noreply.github.com"
 export PYTHONPATH="~/MONAI:~/ptproto:$PYTHONPATH"
 export MONAI_DATA_DIRECTORY="/home/$(whoami)/data/MONAI"
 printf "export PYTHONPATH=%s\n" "$PYTHONPATH" >> ~/.bashrc
-printf "export MONA_DATA_DIRECTORY=%s\n" "$MONAI_DATA_DIRECTORY" >> ~/.bashrc
+printf "export MONAI_DATA_DIRECTORY=%s\n" "$MONAI_DATA_DIRECTORY" >> ~/.bashrc
 source ~/.bashrc
 
 # Compile MONAI cuda code
