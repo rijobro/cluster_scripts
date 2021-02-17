@@ -44,7 +44,7 @@ cat - <<EOF > MonaiDockerfile
 FROM $base_image
 
 # Install required packages
-RUN apt update && apt upgrade -y && apt install -y openssh-server nano sudo && rm -rf /var/lib/apt/lists/*
+RUN apt update && apt upgrade -y && apt install -y openssh-server nano sudo htop && rm -rf /var/lib/apt/lists/*
 
 # Get all the variables we'll need
 ARG GROUPS
