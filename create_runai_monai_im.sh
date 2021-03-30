@@ -43,15 +43,11 @@ cp ~/.ssh/id_rsa.pub .
 cat - <<EOF > MonaiDockerfile
 FROM $base_image
 
+RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+
 # Install required packages
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update && apt upgrade -y && apt install -y openssh-server nano sudo htop ffmpeg libsm6 libxext6
-
-# NVIDIA OpenCV dependencies
-RUN apt install -y libavcodec-dev libavformat-dev libswscale-dev \
-	libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev \
-	libpng-dev libjpeg-dev libopenexr-dev libtiff-dev libwebp-dev \
-	libpython2-dev python-numpy libgtk2.0-dev
 
 # Get all the variables we'll need
 ARG GROUPS
@@ -136,7 +132,17 @@ RUN jt -t oceans16 -T -N # Blue theme
 RUN python -m pip install --user ipywidgets torchsummary scikit-learn nbdime jupyterlab
 RUN nbdime config-git --enable --global
 
-# NVIDIA OpenCV build
+################################################################################
+# NVIDIA OpenCV
+################################################################################
+# Dependencies
+USER root
+RUN apt install -y libavcodec-dev libavformat-dev libswscale-dev \
+	libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev \
+	libpng-dev libjpeg-dev libopenexr-dev libtiff-dev libwebp-dev \
+	libpython2-dev python-numpy libgtk2.0-dev
+USER \${UNAME}
+
 RUN mkdir opencv
 RUN cd opencv && git clone https://github.com/opencv/opencv.git Source
 RUN cd opencv && git clone https://github.com/opencv/opencv_contrib.git
@@ -153,8 +159,19 @@ RUN cd opencv/Build && cmake ../Source -DCMAKE_INSTALL_PREFIX:PATH=/home/\${UNAM
 	-DPYTHON2_EXECUTABLE:FILEPATH=/usr/bin/python2.7 \
 	-DPYTHON_DEFAULT_EXECUTABLE:FILEPATH=/home/\${UNAME}/.conda/bin/python3
 RUN cd opencv/Build && make -j10 install
+################################################################################
 
-COPY monaistartup.sh .
+################################################################################
+# VNC
+################################################################################
+COPY xstartup .
+RUN mkdir -p /home/\${UNAME}/.vnc
+RUN mv xstartup /home/\${UNAME}/.vnc/xstartup
+USER root
+RUN apt install -y xfce4 xfce4-goodies tigervnc-standalone-server
+RUN chmod +x /home/\${UNAME}/.vnc/xstartup
+USER \${UNAME}
+################################################################################
 
 EXPOSE 2222
 

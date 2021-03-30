@@ -6,9 +6,10 @@ set -x # print command before doing it
 # Options
 ssh_server=true
 pulseaudio=false
-compilemonai=true
-runvnc=false
+compilemonai=false
+runvnc=true
 virtualbox=false
+jupylab=false
 
 
 # Set password hashes. Create with:
@@ -68,21 +69,7 @@ if [ "$pulseaudio" = true ]; then
 fi
 
 # Start a VNC server
-if [ "$runvnc" = true ] ; then
-	apt update
-	# switch commenting of next two lines for ubuntu instead of xfce4
-	DEBIAN_FRONTEND=noninteractive apt install -y xfce4 xfce4-goodies
-	# DEBIAN_FRONTEND=noninteractive apt install -y ubuntu-desktop
-	apt install -y vnc4server
-
-	mkdir -p ~/.vnc
-	touch ~/.vnc/xstartup
-	chmod +x ~/.vnc/xstartup
-
-	# ubuntu or xfce4?
-	echo "xfce4-session &" >> ~/.vnc/xstartup
-	# echo "gnome-session &" >> ~/.vnc/xstartup
-
+if [ "$runvnc" = true ]; then
 	# Start the vnc server (first time requires pw)
 	printf "$vnc_pw\n$vnc_pw\n" | vncserver
 fi
@@ -98,19 +85,21 @@ if [ "$virtualbox" = true ] ; then
 	apt install -y virtualbox
 fi
 
-# jupyter lab dark mode
-mkdir -p /home/rbrown/.local/share/jupyter/lab/settings/
-cat > /home/rbrown/.local/share/jupyter/lab/settings/overrides.json<< EOF
+if [ "$jupylab" = true ] ; then
+	# jupyter lab dark mode
+	mkdir -p /home/rbrown/.local/share/jupyter/lab/settings/
+	cat > /home/rbrown/.local/share/jupyter/lab/settings/overrides.json<< EOF
 {
   "@jupyterlab/apputils-extension:themes": {
     "theme": "JupyterLab Dark"
   }
 }
 EOF
+	jupyter lab --ip 0.0.0.0 --no-browser --allow-root --notebook-dir="~" --ServerApp.password=${jupy_lab_pw} --port 8889 &
+fi
 
 # Start jupyter
 jupyter notebook --ip 0.0.0.0 --no-browser --allow-root --notebook-dir="~" --NotebookApp.password=${jupy_pw}
-#jupyter lab --ip 0.0.0.0 --no-browser --allow-root --notebook-dir="~" --ServerApp.password=${jupy_lab_pw}
 
 
 sleep infinity

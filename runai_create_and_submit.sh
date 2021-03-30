@@ -27,8 +27,9 @@ runai submit $jobname \
 	-v ~/Documents/Code/MONAI:/home/rbrown/MONAI \
 	-v ~/Documents/Code/monai-tutorials:/home/rbrown/monai-tutorials \
 	-v ~/Documents/Data:/home/rbrown/data \
+	-v ~/Documents/Code/dgxscripts:/home/rbrown/dgxscripts \
 	-v ~/.vscode-server:/home/rbrown/.vscode-server \
-	--command -- sh /home/rbrown/monaistartup.sh
+	--command -- sh /home/rbrown/dgxscripts/monaistartup.sh
 
 # Get job status
 function get_status {
