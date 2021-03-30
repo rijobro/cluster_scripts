@@ -3,11 +3,10 @@
 set -e # exit on error
 set -x # print command before doing it
 
-
 # Options
 ssh_server=true
 pulseaudio=false
-compilemonai=false
+compilemonai=true
 runvnc=false
 virtualbox=false
 
@@ -15,6 +14,7 @@ virtualbox=false
 # Set password hashes. Create with:
 #   jupy: python -c "from notebook.auth import passwd; print(passwd())"
 jupy_pw='argon2:$argon2id$v=19$m=10240,t=10,p=8$k9uoAnn3KFfJWO3SNMvYmQ$r8E9SnfzkkM4+SiQpIliJw'
+jupy_lab_pw='sha1:7a6f40a1cc45:0f6878715e738b2618c887f0525e2b3008cdea50'
 vnc_pw='monai1'
 
 # Mount our bash script
@@ -26,6 +26,16 @@ echo "PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\[\03
 # Set git info
 git config --global user.name "Richard Brown"
 git config --global user.email "33289025+rijobro@users.noreply.github.com"
+
+# synapse
+export SYNAPSE_USER="rijobro"
+export SYNAPSE_PWD="synapsepassword4?"
+printf "export SYNAPSE_USER=%s\n" "$SYNAPSE_USER" >> ~/.bashrc
+printf "export SYNAPSE_PWD=%s\n" "$SYNAPSE_PWD" >> ~/.bashrc
+
+# xterm
+export TERM=xterm
+printf "export TERM=xterm\n" >> ~/.bashrc
 
 # Set paths
 export PYTHONPATH="~/MONAI:~/ptproto:$PYTHONPATH"
@@ -84,7 +94,19 @@ if [ "$virtualbox" = true ] ; then
 	apt install -y virtualbox
 fi
 
+# jupyter lab dark mode
+mkdir -p /home/rbrown/.local/share/jupyter/lab/settings/
+cat > /home/rbrown/.local/share/jupyter/lab/settings/overrides.json<< EOF
+{
+  "@jupyterlab/apputils-extension:themes": {
+    "theme": "JupyterLab Dark"
+  }
+}
+EOF
+
 # Start jupyter
 jupyter notebook --ip 0.0.0.0 --no-browser --allow-root --notebook-dir="~" --NotebookApp.password=${jupy_pw}
+#jupyter lab --ip 0.0.0.0 --no-browser --allow-root --notebook-dir="~" --ServerApp.password=${jupy_lab_pw}
+
 
 sleep infinity

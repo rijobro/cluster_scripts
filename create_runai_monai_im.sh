@@ -44,7 +44,8 @@ cat - <<EOF > MonaiDockerfile
 FROM $base_image
 
 # Install required packages
-RUN apt update && apt upgrade -y && apt install -y openssh-server nano sudo htop iotop && rm -rf /var/lib/apt/lists/*
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt update && apt upgrade -y && apt install -y openssh-server nano sudo htop ffmpeg libsm6 libxext6
 
 # Get all the variables we'll need
 ARG GROUPS
@@ -85,11 +86,15 @@ ENV PATH "/home/\${UNAME}/.conda/bin:/home/\${UNAME}/.local/bin:\$PATH"
 RUN echo "export PATH=/home/\${UNAME}/.conda/bin:/home/\${UNAME}/.local/bin:\$PATH" >> /home/\${UNAME}/.bashrc
 RUN echo "export LD_LIBRARY_PATH=\${LD_LIBRARY_PATH}" >> /home/\${UNAME}/.bashrc
 RUN echo "source /home/\${UNAME}/.bashrc" >> /home/\${UNAME}/.bash_profile
+# Misc bash
+RUN echo "export TERM=xterm" >> ~/.bashrc
+RUN echo "export DEBUGPY_EXCEPTION_FILTER_USER_UNHANDLED=1" >> ~/.bashrc
 
 # Install requirements
 RUN python -m pip install -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/requirements.txt && \
 	python -m pip install -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/requirements-dev.txt && \
-	python -m pip install -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/docs/requirements.txt
+	python -m pip install -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/docs/requirements.txt && \
+        python -m pip install -r https://raw.githubusercontent.com/Project-MONAI/tutorials/master/requirements.txt
 
 # Set up SSHD to be run as non-sudo user
 RUN mkdir -p /home/\${UNAME}/.ssh && \
@@ -122,7 +127,7 @@ RUN jt -t oceans16 -T -N # Blue theme
 #RUN jt -t monokai -f fira -fs 13 -nf ptsans -nfs 11 -N -kl -cursw 5 -cursc r -cellw 95% -T # Green theme
 
 # Pip install anything else
-RUN python -m pip install --user ipywidgets torchsummary scikit-learn nbdime
+RUN python -m pip install --user ipywidgets torchsummary scikit-learn nbdime jupyterlab
 RUN nbdime config-git --enable --global
 
 COPY monaistartup.sh .
