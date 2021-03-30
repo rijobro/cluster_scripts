@@ -47,6 +47,12 @@ FROM $base_image
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update && apt upgrade -y && apt install -y openssh-server nano sudo htop ffmpeg libsm6 libxext6
 
+# NVIDIA OpenCV dependencies
+RUN apt install -y libavcodec-dev libavformat-dev libswscale-dev \
+	libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev \
+	libpng-dev libjpeg-dev libopenexr-dev libtiff-dev libwebp-dev \
+	libpython2-dev python-numpy libgtk2.0-dev
+
 # Get all the variables we'll need
 ARG GROUPS
 ARG GIDS
@@ -129,6 +135,24 @@ RUN jt -t oceans16 -T -N # Blue theme
 # Pip install anything else
 RUN python -m pip install --user ipywidgets torchsummary scikit-learn nbdime jupyterlab
 RUN nbdime config-git --enable --global
+
+# NVIDIA OpenCV build
+RUN mkdir opencv
+RUN cd opencv && git clone https://github.com/opencv/opencv.git Source
+RUN cd opencv && git clone https://github.com/opencv/opencv_contrib.git
+RUN mkdir opencv/Build && cd opencv/Build
+
+RUN cd opencv/Build && cmake ../Source -DCMAKE_INSTALL_PREFIX:PATH=/home/\${UNAME}/opencv/Install \
+	-DWITH_CUDA:BOOL=ON -DOPENCV_EXTRA_MODULES_PATH:PATH=/home/\${UNAME}/opencv/opencv_contrib/modules \
+	-DPYTHON3_LIBRARIES:FILEPATH=/home/\${UNAME}/.conda/lib/libpython3.8.a \
+	-DPYTHON3_INCLUDE_DIRS:PATH=/home/\${UNAME}/.conda/include/python3.8 \
+	-DPYTHON3_EXECUTABLE:FILEPATH=/home/\${UNAME}/.conda/bin/python3 \
+	-DPYTHON3_NUMPY_INCLUDE_DIRS:PATH=/home/\${UNAME}/.conda/lib/python3.8/site-packages/numpy/core/include \
+	-DPYTHON2_LIBRARIES:FILEPATH=/usr/lib/x86_64-linux-gnu/libpython2.7.so \
+	-DPYTHON2_INCLUDE_DIRS:PATH=/usr/include/python2.7 \
+	-DPYTHON2_EXECUTABLE:FILEPATH=/usr/bin/python2.7 \
+	-DPYTHON_DEFAULT_EXECUTABLE:FILEPATH=/home/\${UNAME}/.conda/bin/python3
+RUN cd opencv/Build && make -j10 install
 
 COPY monaistartup.sh .
 

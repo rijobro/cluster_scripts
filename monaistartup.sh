@@ -44,6 +44,10 @@ printf "export PYTHONPATH=%s\n" "$PYTHONPATH" >> ~/.bashrc
 printf "export MONAI_DATA_DIRECTORY=%s\n" "$MONAI_DATA_DIRECTORY" >> ~/.bashrc
 source ~/.bashrc
 
+# Add custom OpenCV2 installation
+export PYTHONPATH=~/opencv/Install/lib/python3.8/site-packages/:$PYTHONPATH
+printf "export PYTHONPATH=%s\n" "$PYTHONPATH" >> ~/.bashrc
+
 # Compile MONAI cuda code
 if [ "$compilemonai" = true ]; then
 	cd ~/MONAI
