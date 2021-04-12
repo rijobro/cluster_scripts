@@ -186,7 +186,8 @@ docker build -t $im_name . \
 	--build-arg GROUP_ID=$(id -g) \
 	--build-arg UNAME=$(whoami) \
 	--build-arg GROUPS="$(groups)" \
-	--build-arg GIDS="$(getent group $(groups) | awk -F: '{print $3}')"
+	--build-arg GIDS="$(getent group $(groups) | awk -F: '{print $3}')" \
+	--network=host
 
 # run with:
 #docker run --rm -ti -d -p 3333:2222 ${im_name}
