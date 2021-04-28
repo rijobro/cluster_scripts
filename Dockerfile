@@ -30,8 +30,8 @@ RUN _groups=($GROUPS) && _gids=($GIDS) && \
         addgroup --gid $gid $group && \
         usermod -a -G $group $UNAME; \
     done
-RUN echo "root:$PW" | chpasswd
-RUN echo "${UNAME}:$PW" | chpasswd
+RUN printf "root:%s" "$PW" | chpasswd -e
+RUN printf "${UNAME}:%s" "$PW" | chpasswd -e
 RUN adduser ${UNAME} sudo
 
 RUN touch /var/run/motd.new
@@ -39,6 +39,7 @@ RUN touch /var/run/motd.new
 # Change to user
 WORKDIR /home/${UNAME}
 USER ${UNAME}
+
 
 ################################################################################
 # Reinstall conda

@@ -10,19 +10,22 @@ print_usage()
 	# Display Help
 	echo "Build docker image and upload it to docker hub."
 	echo
-	echo "Syntax: create_docker_im.sh [-h|--help] [--docker_base im] [--docker_im_name name] [--docker_uname uname]"
-	echo "                            [--uname uname] [--pwd pwd] [--user_id user_id] [--group_id group_id]"
-	echo "                            [--groups groups] [--gids gids] [--auth_keys_path path] [--id_rsa_path path]"
+	echo "Syntax: create_docker_im.sh [-h|--help] [--docker_push] [--docker_base im] [--docker_im_name name]"
+	echo "                            [--docker_uname uname] [--uname uname] [--pwd_hash pwd_hash] [--user_id user_id]"
+	echo "                            [--group_id group_id] [--groups groups] [--gids gids]"
+	echo "                            [--auth_keys_path path] [--id_rsa_path path]"
 	echo
 	echo "options:"
 	echo "-h, --help          : Print this help."
 	echo
+	echo "--docker_push       : Push the created image to dockerhub."
 	echo "--docker_base       : Base docker image. Default: nvcr.io/nvidia/pytorch:21.04-py3."
 	echo "--docker_im_name    : Name of image to be uploaded to docker hub. Default: rb-monai."
 	echo "--docker_uname      : Docker username for uploading to docker hub. Default: rijobro."
 	echo
 	echo "--uname             : Username. Default: \$(whoami)."
-	echo "--pwd               : Password for sudo access. Default: monai."
+	echo "--pwd_hash          : Password hash for sudo access. Can be generated with \"openssl passwd -6\"."
+	echo "                      Default: \$6\$JbDH1Je1XZgHvoBy\$IBbclXaWLHv1ToyPYFS8sw7fCTfssidMqtF/gkJWxoF37m58wrK/3OK4CzotnoneB43i8O01MoOeb57zvx3Sk/."
 	echo "--user_id           : User ID. Default: \$UID."
 	echo "--group_id          : Group ID. Default: \$(id -g)."
 	echo "--groups            : Groups. Default: \$(groups)."
@@ -44,6 +47,10 @@ do
 			print_usage
 			exit 0
 		;;
+		--docker_push)
+			docker_push=true
+			shift
+		;;
 		--docker_base)
 			docker_base="$2"
 			shift
@@ -60,8 +67,8 @@ do
 			uname="$2"
 			shift
 		;;
-		--password)
-			password="$2"
+		--pwd_hash)
+			pwd_hash="$2"
 			shift
 		;;
 		--user_id)
@@ -97,12 +104,13 @@ do
 done
 
 # Default variables
+: "${docker_push:=false}"
 : "${docker_base:=nvcr.io/nvidia/pytorch:21.04-py3}"
 : "${docker_im_name:=rb-monai}"
 : "${docker_uname:=rijobro}"
 
 : "${uname:=$(whoami)}"
-: "${password:=monai}"
+: "${pwd_hash:=\$6\$JbDH1Je1XZgHvoBy\$IBbclXaWLHv1ToyPYFS8sw7fCTfssidMqtF/gkJWxoF37m58wrK/3OK4CzotnoneB43i8O01MoOeb57zvx3Sk/}"
 : "${user_id:=$UID}"
 : "${group_id:=$(id -g)}"
 : "${groups:=$(groups)}"
@@ -147,7 +155,7 @@ docker build -t $docker_im_name . \
 	-f Dockerfile \
 	--build-arg DOCKER_BASE=$docker_base \
 	--build-arg UNAME=${uname} \
-	--build-arg PW=${password} \
+	--build-arg PW="${pwd_hash}" \
 	--build-arg USER_ID=${user_id} \
 	--build-arg GROUP_ID=${group_id} \
 	--build-arg GROUPS="${groups}" \
@@ -158,5 +166,7 @@ docker build -t $docker_im_name . \
 #docker run --rm -ti -d -p 3333:2222 ${docker_im_name}
 
 # Push image
-docker tag $docker_im_name ${docker_uname}/${docker_im_name}
-docker push ${docker_uname}/${docker_im_name}:latest
+if [ $docker_push = true ]; then
+	docker tag $docker_im_name ${docker_uname}/${docker_im_name}
+	docker push ${docker_uname}/${docker_im_name}:latest
+fi
