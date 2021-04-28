@@ -108,10 +108,12 @@ done
 : "${groups:=$(groups)}"
 : "${gids:=$(getent group $(groups) | awk -F: '{print $3}')}"
 
-: "${auth_keys_path:=~/.ssh/authorized_keys}"
-: "${id_rsa_path:=~/.ssh/id_rsa}"
+: "${auth_keys_path:=$HOME/.ssh/authorized_keys}"
+: "${id_rsa_path:=$HOME/.ssh/id_rsa.pub}"
 
-echo "Using base docker image: ${docker_base}"
+echo
+echo
+echo "Base docker image: ${docker_base}"
 echo "Generated image name: ${docker_im_name}"
 echo "Docker username: ${docker_uname}"
 echo
@@ -124,6 +126,8 @@ echo "GIDs: ${gids}"
 echo
 echo "Location of auth_keys_path: ${auth_keys_path}"
 echo "Location of id_rsa_path: ${id_rsa_path}"
+echo
+echo
 
 
 # cleanup
@@ -136,18 +140,18 @@ trap cleanup EXIT
 cd "$(dirname "$0")"
 
 # Copy in the authorized and public keys so that it can be added to the authorized keys in the container
-cat "${auth_keys_path}" > authorized_keys
+cat $auth_keys_path > authorized_keys
 cp "${id_rsa_path}" .
 
-# if you have experimental features enabled add --squash to ensure the password isn't cached by the build process
 docker build -t $docker_im_name . \
 	-f Dockerfile \
+	--build-arg DOCKER_BASE=$docker_base \
 	--build-arg UNAME=${uname} \
 	--build-arg PW=${password} \
 	--build-arg USER_ID=${user_id} \
 	--build-arg GROUP_ID=${group_id} \
-	--build-arg GROUPS=${groups} \
-	--build-arg GIDS=${gids} \
+	--build-arg GROUPS="${groups}" \
+	--build-arg GIDS="${gids}" \
 	--network=host
 
 # run with:
