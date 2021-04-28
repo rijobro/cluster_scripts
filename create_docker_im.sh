@@ -141,7 +141,7 @@ cp "${id_rsa_path}" .
 
 # if you have experimental features enabled add --squash to ensure the password isn't cached by the build process
 docker build -t $docker_im_name . \
-	-f Dockerfile  \
+	-f Dockerfile \
 	--build-arg UNAME=${uname} \
 	--build-arg PW=${password} \
 	--build-arg USER_ID=${user_id} \
