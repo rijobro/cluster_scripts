@@ -42,6 +42,18 @@ USER ${UNAME}
 
 
 ################################################################################
+# Set paths
+################################################################################
+ENV PATH "/home/${UNAME}/.local/bin:$PATH"
+RUN echo "export PATH=/home/${UNAME}/.local/bin:$PATH" >> /home/${UNAME}/.bashrc
+RUN echo "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> /home/${UNAME}/.bashrc
+RUN echo "source /home/${UNAME}/.bashrc" >> /home/${UNAME}/.bash_profile
+# Misc bash
+RUN echo "export TERM=xterm" >> ~/.bashrc
+RUN echo "export DEBUGPY_EXCEPTION_FILTER_USER_UNHANDLED=1" >> ~/.bashrc
+
+
+################################################################################
 # Reinstall conda
 ################################################################################
 # USER root
@@ -49,21 +61,11 @@ USER ${UNAME}
 # RUN anaconda-clean -y
 # RUN rm -rf /opt/conda
 # USER ${UNAME}
+# ENV PATH "/home/${UNAME}/.conda/bin:$PATH"
+# RUN echo "export PATH=/home/${UNAME}/.conda/bin:$PATH" >> /home/${UNAME}/.bashrc
 # RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 # RUN bash ./Miniconda3-latest-Linux-x86_64.sh -p /home/${UNAME}/.conda -b
 # RUN rm Miniconda3-latest-Linux-x86_64.sh
-
-
-################################################################################
-# Set paths
-################################################################################
-ENV PATH "/home/${UNAME}/.conda/bin:/home/${UNAME}/.local/bin:$PATH"
-RUN echo "export PATH=/home/${UNAME}/.conda/bin:/home/${UNAME}/.local/bin:$PATH" >> /home/${UNAME}/.bashrc
-RUN echo "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> /home/${UNAME}/.bashrc
-RUN echo "source /home/${UNAME}/.bashrc" >> /home/${UNAME}/.bash_profile
-# Misc bash
-RUN echo "export TERM=xterm" >> ~/.bashrc
-RUN echo "export DEBUGPY_EXCEPTION_FILTER_USER_UNHANDLED=1" >> ~/.bashrc
 
 ################################################################################
 # Pip install requirements and set up jupyter notebook theme
@@ -119,11 +121,11 @@ RUN rm authorized_keys id_rsa.pub
 # USER ${UNAME}
 
 # RUN mkdir opencv
-# RUN cd opencv && git clone https://github.com/opencv/opencv.git Source
-# RUN cd opencv && git clone https://github.com/opencv/opencv_contrib.git
-# RUN mkdir opencv/Build && cd opencv/Build
+# RUN cd opencv && \
+#     git clone https://github.com/opencv/opencv.git Source && \
+#     git clone https://github.com/opencv/opencv_contrib.git
 
-# RUN cd opencv/Build && cmake ../Source -DCMAKE_INSTALL_PREFIX:PATH=/home/${UNAME}/opencv/Install \
+# RUN mkdir opencv/Build && cd opencv/Build && cmake ../Source -DCMAKE_INSTALL_PREFIX:PATH=/home/${UNAME}/opencv/Install \
 #     -DWITH_CUDA:BOOL=ON -DOPENCV_EXTRA_MODULES_PATH:PATH=/home/${UNAME}/opencv/opencv_contrib/modules \
 #     -DPYTHON3_LIBRARIES:FILEPATH=/home/${UNAME}/.conda/lib/libpython3.8.a \
 #     -DPYTHON3_INCLUDE_DIRS:PATH=/home/${UNAME}/.conda/include/python3.8 \
@@ -153,11 +155,23 @@ USER ${UNAME}
 ################################################################################
 # Qt creator
 ################################################################################
-RUN mkdir Qt && mkdir Qt/Build
-RUN cd Qt && git clone https://code.qt.io/qt-creator/qt-creator.git Source
-# RUN qmake --version
-#RUN wget https://download.qt.io/official_releases/qt/5.12/5.12.10/qt-opensource-linux-x64-5.12.10.run
-#RUN chmod +x ./qt-opensource-linux-x64-5.12.10.run
+USER root
+RUN sudo apt install -y freeglut3-dev
+USER ${UNAME}
+RUN mkdir Qt && cd Qt && \
+    maj=6 && min=0 && patch=3 && \
+    fname=qt-everywhere-src-${maj}.${min}.${patch} && \
+    wget http://download.qt.io/official_releases/qt/${maj}.${min}/${maj}.${min}.${patch}/single/${fname}.tar.xz && \
+    tar -xf ${fname}.tar.xz && mv ${fname} Source
+RUN mkdir Qt/Build && cd Qt/Build && \
+    cmake ../Source/ -G Ninja \
+	    -DCMAKE_BUILD_TYPE:STRING=Release \
+	    -DCMAKE_INSTALL_PREFIX:PATH=/home/${UNAME}/Qt/Install
+RUN cd Qt/Build && ninja install
+# RUN echo "export PATH=$PATH:/home/${UNAME}/Qt/Install/bin" >> /home/${UNAME}/.bashrc
+
+RUN cd Qt && cp -r Source Source_configure && cd Source_configure && ./configure -prefix /home/${UNAME}/Qt/Install_configure -opensource -nomake tests -nomake examples -release -confirm-license
+RUN cd Qt/Source_configure && cmake --build . -j 40 && cmake --install .
 ################################################################################
 
 EXPOSE 2222
