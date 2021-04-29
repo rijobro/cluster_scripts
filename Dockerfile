@@ -88,8 +88,6 @@ USER root
 RUN apt install -y pulseaudio espeak
 USER ${UNAME}
 RUN echo 'export PULSE_SERVER="tcp:localhost:24713"' >> ~/.bashrc
-# Start at login
-RUN echo -e "[Desktop Entry]\nName=pulseaudio\nExec=pulseaudio --start\nType=Application" > ~/.config/autostart/pulseaudio.desktop
 
 
 ################################################################################
@@ -104,7 +102,6 @@ RUN python -m pip install -r https://raw.githubusercontent.com/Project-MONAI/MON
 RUN python -m pip install --user jupyterthemes
 RUN jt -t oceans16 -T -N
 #RUN jt -t monokai -f fira -fs 13 -nf ptsans -nfs 11 -N -kl -cursw 5 -cursc r -cellw 95% -T
-RUN echo -e "[Desktop Entry]\nName=jupyter\nExec=jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir=\"~\"\nType=Application" > ~/.config/autostart/jupyter.desktop
 
 
 ################################################################################
@@ -134,9 +131,6 @@ RUN paste -d "\n" authorized_keys id_rsa.pub > ~/.ssh/authorized_keys
 RUN rm authorized_keys id_rsa.pub
 
 EXPOSE 2222
-
-# Start at login
-RUN echo -e "[Desktop Entry]\nName=SSHD\nExec=/usr/sbin/sshd -D -f ~/.ssh/sshd_config -E ~/.ssh/sshd.log\nType=Application" > ~/.config/autostart/sshd.desktop
 
 
 ################################################################################

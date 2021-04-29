@@ -33,7 +33,8 @@ runai submit $jobname \
 	-e SYNAPSE_USER=rijobro \
 	-e SYNAPSE_PWD="synapsepassword4?" \
 	--command -- sh /home/rbrown/Documents/Code/dgxscripts/monaistartup.sh \
-		--python_path /home/rbrown/Documents/Code/MONAI:/home/rbrown/Documents/Code/ptproto
+		--python_path /home/rbrown/Documents/Code/MONAI:/home/rbrown/Documents/Code/ptproto \
+		--ssh_server --pulse_audio --jupy
 
 # Get job status
 function get_status {
