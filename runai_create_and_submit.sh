@@ -21,17 +21,19 @@ runai submit $jobname \
 	-g 1 \
 	--interactive \
 	--port 30022:2222 \
-	--port 30023:8888 \
 	--host-ipc \
-	-v ~/Documents/Code/bash_profile:/home/rbrown/bash_profile \
-	-v ~/Documents/Code/MONAI:/home/rbrown/MONAI \
-	-v ~/Documents/Code/monai-tutorials:/home/rbrown/monai-tutorials \
-	-v ~/Documents/Data:/home/rbrown/data \
-	-v ~/Documents/Code/dgxscripts:/home/rbrown/dgxscripts \
-        -v ~/Documents/Code/real_time_seg:/home/rbrown/real_time_seg \
+	-v ~/Documents/Code/MONAI:/home/rbrown/Documents/Code/MONAI \
+	-v ~/Documents/Code/monai-tutorials:/home/rbrown/Documents/Code/monai-tutorials \
+	-v ~/Documents/Data:/home/rbrown/Documents/Data \
+	-v ~/Documents/Code/dgxscripts:/home/rbrown/Documents/Code/dgxscripts \
+	-v ~/Documents/Code/real_time_seg:/home/rbrown/Documents/Code/real_time_seg \
 	-v ~/.vscode-server:/home/rbrown/.vscode-server \
-	-v ~/Documents/Scratch:/home/rbrown/Scratch \
-	--command -- sh /home/rbrown/dgxscripts/monaistartup.sh
+	-v ~/Documents/Scratch:/home/rbrown/Documents/Scratch \
+	-e MONAI_DATA_DIRECTORY=/home/rbrown/Documents/Data/MONAI \
+	-e SYNAPSE_USER=rijobro \
+	-e SYNAPSE_PWD="synapsepassword4?" \
+	--command -- sh /home/rbrown/Documents/Code/dgxscripts/monaistartup.sh \
+		--python_path /home/rbrown/Documents/Code/MONAI:/home/rbrown/Documents/Code/ptproto
 
 # Get job status
 function get_status {
