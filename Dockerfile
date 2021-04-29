@@ -106,6 +106,8 @@ COPY id_rsa.pub .
 RUN paste -d "\n" authorized_keys id_rsa.pub > /home/${UNAME}/.ssh/authorized_keys
 RUN rm authorized_keys id_rsa.pub
 
+EXPOSE 2222
+
 
 ################################################################################
 # NVIDIA OpenCV
@@ -160,7 +162,5 @@ RUN mkdir Qt && cd Qt && wget https://code.qt.io/cgit/qbs/qbs.git/plain/scripts/
 RUN cd Qt && chmod +x install-qt.sh && ./install-qt.sh --version 4.14.2 -d /home/${UNAME}/Qt/Install qtcreator
 RUN echo "export PATH=$PATH:/home/${UNAME}/Qt/Install/Tools/QtCreator/bin" >> /home/${UNAME}/.bashrc
 ################################################################################
-
-EXPOSE 2222
 
 CMD /usr/sbin/sshd -D -f /home/${UNAME}/.ssh/sshd_config -E /home/${UNAME}/.ssh/sshd.log
