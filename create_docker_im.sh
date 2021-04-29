@@ -49,7 +49,6 @@ do
 		;;
 		--docker_push)
 			docker_push=true
-			shift
 		;;
 		--docker_base)
 			docker_base="$2"

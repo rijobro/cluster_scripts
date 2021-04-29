@@ -9,7 +9,7 @@ jobname=rb-monai
 cd "$(dirname "$0")"
 
 # Update docker image if necessary
-./create_docker_im.sh
+./create_docker_im.sh --docker_push
 
 # Delete previously running job
 runai delete $jobname 2> /dev/null
