@@ -29,12 +29,12 @@ runai submit $jobname \
 	-v ~/Documents/Code/real_time_seg:/home/rbrown/Documents/Code/real_time_seg \
 	-v ~/.vscode-server:/home/rbrown/.vscode-server \
 	-v ~/Documents/Scratch:/home/rbrown/Documents/Scratch \
-	-e MONAI_DATA_DIRECTORY=/home/rbrown/Documents/Data/MONAI \
-	-e SYNAPSE_USER=rijobro \
-	-e SYNAPSE_PWD="synapsepassword4?" \
 	--command -- sh /home/rbrown/Documents/Code/dgxscripts/monaistartup.sh \
-		--python_path /home/rbrown/Documents/Code/MONAI:/home/rbrown/Documents/Code/ptproto \
-		--ssh_server --pulse_audio --jupy
+		--ssh_server --pulse_audio --jupy \
+		-e MONAI_DATA_DIRECTORY=/home/rbrown/Documents/Data/MONAI \
+		-e SYNAPSE_USER=rijobro \
+		-e SYNAPSE_PWD="synapsepassword4?" \
+		-e PYTHONPATH='/home/rbrown/Documents/Code/MONAI:/home/rbrown/Documents/Code/ptproto:${PYTHONPATH}'
 
 # Get job status
 function get_status {
@@ -51,7 +51,7 @@ while true; do
 		echo Job status: $new_status
 		old_status="$new_status"
 	fi
-	if [[ "$new_status" == "Running" ]]; then
+	if [[ "$new_status" == "Running" || "$new_status" == "Failed" ]]; then
 		break
 	fi
 	sleep .5

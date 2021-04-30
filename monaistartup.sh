@@ -10,24 +10,25 @@ print_usage()
 	echo 'Script to be run at start of docker job.'
 	echo
 	echo 'Syntax: monaistartup.sh [-h|--help] [--compile_monai] [--jupy] [--ssh_server]'
-	echo '                        [--pulse_audio] [--python_path val] '
+	echo '                        [--pulse_audio] [--python_path val] [-e|--env name=val]'
 	echo
 	echo 'options:'
-	echo '-h, --help          : Print this help.'
+	echo '-h, --help                : Print this help.'
 	echo
-	echo '--compile_monai     : Compile MONAI code.'
-	echo '--jupy              : Start a jupyter notebook'
-	echo '--ssh_server        : Start an SSH server.'
-	echo '--pulse_audio       : Use pulseaudio to send audio back to local machine.'
+	echo '--compile_monai           : Compile MONAI code.'
+	echo '--jupy                    : Start a jupyter notebook'
+	echo '--ssh_server              : Start an SSH server.'
+	echo '--pulse_audio             : Use pulseaudio to send audio back to local machine.'
 	echo
-	echo '--python_path       : Extra elements to be prepended to PYTHONPATH'
-	echo '                      (multiple elements can be colon separated).'
+	echo '-e, --env <name=val>      : Environmental variable given as "NAME=VAL".'
+	echo '                            Can be used multiple times.'
 	echo
 }
 
 ################################################################################
 # parse input arguments
 ################################################################################
+
 while [[ $# -gt 0 ]]
 do
 	key="$1"
@@ -48,11 +49,14 @@ do
 		--pulse_audio)
 			pulse_audio=true
 		;;
-		--python_path)
-			python_path=$2
+		-e|--env)
+			if [[ -z "${envs}" ]]; then envs=(); fi
+			envs+=($2)
+			echo $2
 			shift
 		;;
 		*)
+			echo -e "\n\nUnknown argument: $key\n\n"
 			print_usage
 			exit 1
 		;;
@@ -73,20 +77,24 @@ echo "Start jupyter session: ${jupy}"
 echo "SSH server: ${ssh_server}"
 echo "Pulseaudio (send audio to local): ${pulse_audio}"
 echo
-echo "Prepend to PYTHONPATH: ${python_path}"
+echo "Environmental variables:"
+for env in "${envs[@]}"; do
+	echo -e "\t${env}"
+done
 echo
-echo
+
+exit 1
 
 set -e # exit on error
 set -x # print command before doing it
 
 source ~/.bashrc
 
-# Append to PYTHONPATH
-if [[ -v python_path ]]; then
-	export PYTHONPATH="${python_path}:$PYTHONPATH"
-	printf "export PYTHONPATH=%s\n" "$PYTHONPATH" >> ~/.bashrc
-fi
+# Add any environmental variables
+for env in "${envs[@]}"; do
+	export ${env}
+	printf "export ${env}\n" >> ~/.bashrc
+done
 
 # Compile MONAI cuda code
 if [ "$compile_monai" = true ]; then
