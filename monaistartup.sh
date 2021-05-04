@@ -83,8 +83,6 @@ for env in "${envs[@]}"; do
 done
 echo
 
-exit 1
-
 set -e # exit on error
 set -x # print command before doing it
 

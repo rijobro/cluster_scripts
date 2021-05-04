@@ -51,7 +51,10 @@ while true; do
 		echo Job status: $new_status
 		old_status="$new_status"
 	fi
-	if [[ "$new_status" == "Running" || "$new_status" == "Failed" ]]; then
+	if [[ "$new_status" == "Failed" ]]; then
+		runai logs $jobname
+		break
+	elif [[ "$new_status" == "Running" ]]; then
 		break
 	fi
 	sleep .5
