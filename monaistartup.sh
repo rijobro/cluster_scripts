@@ -9,7 +9,7 @@ print_usage()
 	# Display Help
 	echo 'Script to be run at start of docker job.'
 	echo
-	echo 'Syntax: monaistartup.sh [-h|--help] [--compile_monai] [--jupy] [--ssh_server]'
+	echo 'Syntax: monaistartup.sh [-h|--help] [--jupy] [--ssh_server] [--compile_monai]'
 	echo '                        [--pulse_audio] [--python_path val] [-e|--env name=val]'
 	echo
 	echo 'options:'
@@ -65,17 +65,17 @@ do
 done
 
 # Default variables
-: ${compile_monai:=false}
 : ${jupy:=false}
 : ${ssh_server:=false}
 : ${pulse_audio:=false}
+: ${compile_monai:=false}
 
 echo
 echo
-echo "Compile MONAI: ${compile_monai}"
 echo "Start jupyter session: ${jupy}"
 echo "SSH server: ${ssh_server}"
 echo "Pulseaudio (send audio to local): ${pulse_audio}"
+echo "Compile MONAI: ${compile_monai}"
 echo
 echo "Environmental variables:"
 for env in "${envs[@]}"; do
@@ -94,12 +94,6 @@ for env in "${envs[@]}"; do
 	printf "export ${env}\n" >> ~/.bashrc
 done
 
-# Compile MONAI cuda code
-if [ "$compile_monai" = true ]; then
-	cd ~/Documents/Code/MONAI
-	BUILD_MONAI=1 python setup.py develop
-fi
-
 # SSH server
 if [ "$ssh_server" = true ]; then
 	nohup /usr/sbin/sshd -D -f ~/.ssh/sshd_config -E ~/.ssh/sshd.log &
@@ -113,6 +107,12 @@ fi
 # Jupyter notebook
 if [ "$jupy" = true ]; then
 	nohup jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir="~" > ~/.jupyter_notebook.log 2>&1
+fi
+
+# Compile MONAI cuda code
+if [ "$compile_monai" = true ]; then
+	cd ~/Documents/Code/MONAI
+	BUILD_MONAI=1 python setup.py develop
 fi
 
 sleep infinity
