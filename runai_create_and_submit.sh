@@ -34,7 +34,8 @@ runai submit $jobname \
 		-e MONAI_DATA_DIRECTORY=/home/rbrown/Documents/Data/MONAI \
 		-e SYNAPSE_USER=rijobro \
 		-e SYNAPSE_PWD="synapsepassword4?" \
-		-e PYTHONPATH='/home/rbrown/Documents/Code/MONAI:/home/rbrown/Documents/Code/ptproto:${PYTHONPATH}'
+		-e PYTHONPATH='/home/rbrown/Documents/Code/MONAI:/home/rbrown/Documents/Code/ptproto:${PYTHONPATH}' \
+		-a cdMONAI="'cd /home/rbrown/Documents/Code/MONAI"
 
 # Get job status
 function get_status {

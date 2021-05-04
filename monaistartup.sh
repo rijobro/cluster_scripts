@@ -20,7 +20,9 @@ print_usage()
 	echo '--ssh_server              : Start an SSH server.'
 	echo '--pulse_audio             : Use pulseaudio to send audio back to local machine.'
 	echo
-	echo '-e, --env <name=val>      : Environmental variable given as "NAME=VAL".'
+	echo '-e, --env <name=val>      : Environmental variable, given as "NAME=VAL".'
+	echo '                            Can be used multiple times.'
+	echo '-a, --alias <name=val>    : Alias, given as "NAME=VAL".'
 	echo '                            Can be used multiple times.'
 	echo
 }
@@ -55,6 +57,12 @@ do
 			echo $2
 			shift
 		;;
+		-a|--alias)
+			if [[ -z "${aliases}" ]]; then aliases=(); fi
+			aliases+=($2)
+			echo $2
+			shift
+		;;
 		*)
 			echo -e "\n\nUnknown argument: $key\n\n"
 			print_usage
@@ -81,6 +89,10 @@ echo "Environmental variables:"
 for env in "${envs[@]}"; do
 	echo -e "\t${env}"
 done
+echo "Aliases:"
+for alias in "${aliases[@]}"; do
+	echo -e "\t${alias}"
+done
 echo
 
 set -e # exit on error
@@ -92,6 +104,12 @@ source ~/.bashrc
 for env in "${envs[@]}"; do
 	export ${env}
 	printf "export ${env}\n" >> ~/.bashrc
+done
+
+# Add any aliases
+for alias in "${aliases[@]}"; do
+	alias ${alias}
+	printf "alias ${alias}\n" >> ~/.bashrc
 done
 
 # SSH server
