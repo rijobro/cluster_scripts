@@ -177,5 +177,11 @@ RUN echo "export PATH=$PATH:~/Documents/Code/Qt/Install/Tools/QtCreator/bin" >> 
 
 
 ################################################################################
+# Clear apt install cache
+################################################################################
+USER root
+RUN rm -rf /var/lib/apt/lists/*
+USER ${UNAME}
+################################################################################
 
 CMD /usr/sbin/sshd -D -f ~/.ssh/sshd_config -E ~/.ssh/sshd.log
