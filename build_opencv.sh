@@ -7,7 +7,7 @@ cmake ../Source -G Ninja \
     -DCMAKE_INSTALL_PREFIX:PATH=$install_prefix \
     -DOPENCV_EXTRA_MODULES_PATH:PATH=~/Documents/Code/opencv/opencv_contrib/modules \
     -DPYTHON_DEFAULT_EXECUTABLE:FILEPATH=$(which python3) \
-    -DCMAKE_BUILD_TYPE:String=Debug \
+    -DCMAKE_BUILD_TYPE:String=Release \
     -DWITH_CUDA:BOOL=OFF \
     -DGLIBCXX_USE_CXX11_ABI=0 \
     -DCMAKE_CXX_FLAGS="-std=c++14" \
