@@ -7,7 +7,8 @@ FROM $DOCKER_BASE
 # Install misc required packages
 ################################################################################
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt update && apt upgrade -y && apt install -y openssh-server nano sudo htop ffmpeg libsm6 libxext6 gdb
+RUN apt update && apt upgrade -y && apt install -y \
+    openssh-server nano sudo htop ffmpeg libsm6 libxext6 gdb valgrind
 
 
 ################################################################################
