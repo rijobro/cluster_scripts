@@ -54,13 +54,11 @@ do
 		-e|--env)
 			if [[ -z "${envs}" ]]; then envs=(); fi
 			envs+=($2)
-			echo $2
 			shift
 		;;
 		-a|--alias)
 			if [[ -z "${aliases}" ]]; then aliases=(); fi
-			aliases+=($2)
-			echo $2
+			aliases+=("$2")
 			shift
 		;;
 		*)
@@ -108,7 +106,7 @@ done
 
 # Add any aliases
 for alias in "${aliases[@]}"; do
-	alias ${alias}
+	alias "${alias}"
 	printf "alias ${alias}\n" >> ~/.bashrc
 done
 
