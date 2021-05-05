@@ -1,6 +1,8 @@
 
 #!/bin/bash
 
+set -e # exit on error
+
 install_prefix=~/Documents/Code/opencv/Install
 
 cmake ../Source -G Ninja \
@@ -20,7 +22,6 @@ cmake ../Source -G Ninja \
     -DBUILD_opencv_videoio:BOOL=ON \
     -DBUILD_opencv_python3:BOOL=ON \
     -DBUILD_opencv_python_bindings_generator:BOOL=ON \
-    -DOPENCV_PYTHON3_VERSION:BOOL=ON \
     -DWITH_FFMPEG:BOOL=ON \
     -DWITH_JPEG:BOOL=ON \
     -DWITH_TIFF:BOOL=ON \
