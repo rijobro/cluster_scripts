@@ -18,6 +18,9 @@ cmake ../Source -G Ninja \
     -DBUILD_opencv_imgproc:BOOL=ON \
     -DBUILD_opencv_video:BOOL=ON \
     -DBUILD_opencv_videoio:BOOL=ON \
+    -DBUILD_opencv_python3:BOOL=ON \
+    -DBUILD_opencv_python_bindings_generator:BOOL=ON \
+    -DOPENCV_PYTHON3_VERSION:BOOL=ON \
     -DWITH_FFMPEG:BOOL=ON \
     -DWITH_JPEG:BOOL=ON \
     -DWITH_TIFF:BOOL=ON \
@@ -114,7 +117,6 @@ cmake ../Source -G Ninja \
     -DBUILD_opencv_xobjdetect:BOOL=OFF \
     -DBUILD_opencv_xphoto:BOOL=OFF \
     -DBUILD_opencv_python2:BOOL=OFF \
-    -DBUILD_opencv_python_bindings_generator:BOOL=OFF \
     -DVIDEOIO_ENABLE_PLUGINS:BOOL=OFF \
     -DWITH_1394:BOOL=OFF \
     -DWITH_ADE:BOOL=OFF \
@@ -175,9 +177,7 @@ cmake ../Source -G Ninja \
     -DWITH_VULKAN:BOOL=OFF \
     -DWITH_WEBP:BOOL=OFF \
     -DWITH_XIMEA:BOOL=OFF \
-    -DWITH_XINE:BOOL=OFF \
-    -DBUILD_opencv_python_tests:BOOL=OFF \
-    -DBUILD_opencv_python3:BOOL=OFF
+    -DWITH_XINE:BOOL=OFF
 
 ninja install
 echo "export PYTHONPATH=${install_prefix}/lib/python3.8/site-packages/:$PYTHONPATH" >> ~/.bashrc
