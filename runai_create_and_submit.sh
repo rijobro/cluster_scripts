@@ -26,7 +26,7 @@ runai submit $jobname \
 	-v ~/Documents/Code/monai-tutorials:/home/rbrown/Documents/Code/monai-tutorials \
 	-v ~/Documents/Data:/home/rbrown/Documents/Data \
 	-v ~/Documents/Code/dgxscripts:/home/rbrown/Documents/Code/dgxscripts \
-	-v ~/Documents/Code/real_time_seg:/home/rbrown/Documents/Code/real_time_seg \
+	-v ~/Documents/Code/RealTimeSeg:/home/rbrown/Documents/Code/RealTimeSeg \
 	-v ~/.vscode-server:/home/rbrown/.vscode-server \
 	-v ~/Documents/Scratch:/home/rbrown/Documents/Scratch \
 	--command -- sh /home/rbrown/Documents/Code/dgxscripts/monaistartup.sh \
