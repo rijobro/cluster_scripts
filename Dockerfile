@@ -176,6 +176,14 @@ RUN cd ~/Documents/Code/Qt && chmod +x install-qt.sh && ./install-qt.sh --versio
 RUN echo "export PATH=$PATH:~/Documents/Code/Qt/Install/Tools/QtCreator/bin" >> ~/.bashrc
 
 
+
+################################################################################
+# Libtorch
+################################################################################
+RUN wget -O libtorch.zip https://download.pytorch.org/libtorch/cu111/libtorch-cxx11-abi-shared-with-deps-1.8.1%2Bcu111.zip
+RUN unzip libtorch.zip -d ~/Documents/Code
+RUN rm libtorch.zip
+
 ################################################################################
 # Clear apt install cache
 ################################################################################
