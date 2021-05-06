@@ -16,6 +16,7 @@ print_usage()
 	echo '                            [--github_name name] [--github_email email]'
 	echo '                            [--jupy_pwd_hash] [--vnc_pwd]'
 	echo '                            [--auth_keys_path path] [--id_rsa_path path]'
+	echo '                            [--docker-args args]'
 	echo
 	echo 'options:'
 	echo '-h, --help          : Print this help.'
@@ -43,6 +44,8 @@ print_usage()
 	echo
 	echo '--auth_keys_path    : Path to "auth_keys_path". Default: ~/.ssh/authorized_keys.'
 	echo '--id_rsa_path       : Path to "id_rsa_path". Default: ~/.ssh/id_rsa_path.'
+	echo
+	echo '--docker-args       : Pass the any extra arguments onto the docker build'
 	echo
 }
 
@@ -118,6 +121,10 @@ do
 		;;
 		--id_rsa_path)
 			id_rsa_path="$2"
+			shift
+		;;
+		--docker-args)
+			extra_docker_args="$2"
 			shift
 		;;
 		*)
@@ -202,7 +209,8 @@ docker build -t $docker_im_name . \
 	--build-arg GITHUB_EMAIL="${github_email}" \
 	--build-arg JUPY_PWD_HASH="${jupy_pwd_hash}" \
 	--build-arg VNC_PWD="${vnc_pwd}" \
-	--network=host
+	--network=host \
+	${extra_docker_args}
 
 # run with:
 #docker run --rm -ti -d -p 3333:2222 ${docker_im_name}
