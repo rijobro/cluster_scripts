@@ -4,6 +4,7 @@ set -e # exit on error
 
 # Job name
 jobname=rb-monai
+imname=rb-monai
 
 # Move to current directory
 cd "$(dirname "$0")"
@@ -17,7 +18,7 @@ runai delete $jobname 2> /dev/null
 # Submit job
 runai submit $jobname \
 	--service-type=nodeport \
-	-i rijobro/$jobname:latest \
+	-i rijobro/$imname:latest \
 	-g 1 \
 	--interactive \
 	--port 30022:2222 \
