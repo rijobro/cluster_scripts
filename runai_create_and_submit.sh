@@ -36,8 +36,8 @@ runai submit $jobname \
 		-e SYNAPSE_USER=rijobro \
 		-e SYNAPSE_PWD="synapsepassword4?" \
 		-e PYTHONPATH='/home/rbrown/Documents/Code/MONAI:/home/rbrown/Documents/Code/ptproto:${PYTHONPATH}' \
-		-e LD_LIBRARY_PATH='${LD_LIBRARY_PATH}:/home/rbrown/Documents/Code/opencv/Install/lib/:~/Documents/Code/libtorch/lib/' \
 		-a 'cdMONAI="cd /home/rbrown/Documents/Code/MONAI"'
+#                -e LD_LIBRARY_PATH='${LD_LIBRARY_PATH}:/home/rbrown/Documents/Code/opencv/Install/lib/:~/Documents/Code/libtorch/lib/' \
 
 # Get job status
 function get_status {
