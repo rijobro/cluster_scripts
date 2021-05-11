@@ -2,9 +2,69 @@
 
 set -e # exit on error
 
-# Job name
-jobname=rb-monai
-imname=rb-monai
+################################################################################
+# Usage
+################################################################################
+print_usage()
+{
+	# Display Help
+	echo 'Script to submit a runai job.'
+	echo
+	echo 'Syntax: runai_create_and_submit.sh [-h|--help] [-g|--gpu <num>] [--job-name <name>]'
+	echo '                                   [--ssh-port <num>] [--non-interactive]'
+	echo
+	echo 'options:'
+	echo '-h, --help                : Print this help.'
+	echo
+	echo '--gpu <val>               : Number of gpus to submit. Default: 1.'
+	echo '--job-name <val>          : Name of submitted job. Default: rb-monai.'
+	echo '--ssh-port <val>          : SSH port. Default: 30022.'
+	echo '--non-interactive         : By default, job is interactive. Use this to submit as non-interactive.'
+	echo
+}
+
+################################################################################
+# parse input arguments
+################################################################################
+
+# Default variables
+gpu=1
+job_name=rb-monai
+im_name=rb-monai
+ssh_port=30022
+interactive="--interactive"
+
+while [[ $# -gt 0 ]]
+do
+	key="$1"
+	case $key in
+		-h|--help)
+			print_usage
+			exit 0
+		;;
+		-g|--gpu)
+			gpu=$2
+			shift
+		;;
+		--job-name)
+			job_name=$2
+			shift
+		;;
+		--ssh-port)
+			ssh_port=$2
+			shift
+		;;
+		--non-interactive)
+			interactive=""
+		;;
+		*)
+			echo -e "\n\nUnknown argument: $key\n\n"
+			print_usage
+			exit 1
+		;;
+	esac
+	shift
+done
 
 # Move to current directory
 cd "$(dirname "$0")"
@@ -13,15 +73,14 @@ cd "$(dirname "$0")"
 ./create_docker_im.sh --docker_push
 
 # Delete previously running job
-runai delete $jobname 2> /dev/null
+runai delete $job_name 2> /dev/null
 
 # Submit job
-runai submit $jobname \
+runai submit $job_name $interactive \
 	--service-type=nodeport \
-	-i rijobro/$imname:latest \
-	-g 1 \
-	--interactive \
-	--port 30022:2222 \
+	-i rijobro/$im_name:latest \
+	-g $gpu \
+	--port ${ssh_port}:2222 \
 	--host-ipc \
 	-v ~/Documents/Code/MONAI:/home/rbrown/Documents/Code/MONAI \
 	-v ~/Documents/Code/monai-tutorials:/home/rbrown/Documents/Code/monai-tutorials \
@@ -42,7 +101,7 @@ runai submit $jobname \
 # Get job status
 function get_status {
 	pat="status: ([a-zA-Z]*)"
-	[[ $(runai describe job $jobname -o yaml) =~ $pat ]] 2> /dev/null
+	[[ $(runai describe job $job_name -o yaml) =~ $pat ]] 2> /dev/null
 	echo "${BASH_REMATCH[1]}"
 }
 
@@ -55,7 +114,7 @@ while true; do
 		old_status="$new_status"
 	fi
 	if [[ "$new_status" == "Failed" ]]; then
-		runai logs $jobname
+		runai logs $job_name
 		break
 	elif [[ "$new_status" == "Running" ]]; then
 		break
