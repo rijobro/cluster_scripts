@@ -70,7 +70,7 @@ done
 cd "$(dirname "$0")"
 
 # Update docker image if necessary
-./create_docker_im.sh --docker_push
+# ./create_docker_im.sh --docker_push
 
 # Delete previously running job
 runai delete $job_name 2> /dev/null
@@ -95,6 +95,7 @@ runai submit $job_name $interactive \
 		-e SYNAPSE_USER=rijobro \
 		-e SYNAPSE_PWD="synapsepassword4?" \
 		-e PYTHONPATH='/home/rbrown/Documents/Code/MONAI:/home/rbrown/Documents/Code/ptproto:${PYTHONPATH}' \
+		-e MONAI_EXTRA_TEST_DATA="/home/rbrown/Documents/Scratch/MONAI-extra-test-data" \
 		-a 'cdMONAI="cd /home/rbrown/Documents/Code/MONAI"'
 #                -e LD_LIBRARY_PATH='${LD_LIBRARY_PATH}:/home/rbrown/Documents/Code/opencv/Install/lib/:~/Documents/Code/libtorch/lib/' \
 
@@ -113,7 +114,7 @@ while true; do
 		echo Job status: $new_status
 		old_status="$new_status"
 	fi
-	if [[ "$new_status" == "Failed" ]]; then
+	if [[ "$new_status" == "Failed" || "$new_status" == "Succeeded" || "$new_status" == "Completed" ]]; then
 		runai logs $job_name
 		break
 	elif [[ "$new_status" == "Running" ]]; then

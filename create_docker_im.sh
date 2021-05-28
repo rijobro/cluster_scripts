@@ -16,13 +16,13 @@ print_usage()
 	echo '                            [--github_name name] [--github_email email]'
 	echo '                            [--jupy_pwd_hash] [--vnc_pwd]'
 	echo '                            [--auth_keys_path path] [--id_rsa_path path]'
-	echo '                            [--docker-args args]'
+	echo '                            [--docker_args args]'
 	echo
 	echo 'options:'
 	echo '-h, --help          : Print this help.'
 	echo
 	echo '--docker_push       : Push the created image to dockerhub.'
-	echo '--docker_base       : Base docker image. Default: nvcr.io/nvidia/pytorch:21.04-py3.'
+	echo '--docker_base       : Base docker image. Default: nvcr.io/nvidia/pytorch:21.05-py3.'
 	echo '--docker_im_name    : Name of image to be uploaded to docker hub. Default: rb-monai.'
 	echo '--docker_uname      : Docker username for uploading to docker hub. Default: rijobro.'
 	echo
@@ -45,7 +45,7 @@ print_usage()
 	echo '--auth_keys_path    : Path to "auth_keys_path". Default: ~/.ssh/authorized_keys.'
 	echo '--id_rsa_path       : Path to "id_rsa_path". Default: ~/.ssh/id_rsa_path.'
 	echo
-	echo '--docker-args       : Pass the any extra arguments onto the docker build'
+	echo '--docker_args       : Pass the any extra arguments onto the docker build'
 	echo
 }
 
@@ -123,7 +123,7 @@ do
 			id_rsa_path="$2"
 			shift
 		;;
-		--docker-args)
+		--docker_args)
 			extra_docker_args="$2"
 			shift
 		;;
@@ -137,7 +137,7 @@ done
 
 # Default variables
 : ${docker_push:=false}
-: ${docker_base:=nvcr.io/nvidia/pytorch:21.04-py3}
+: ${docker_base:=nvcr.io/nvidia/pytorch:21.05-py3}
 : ${docker_im_name:=rb-monai}
 : ${docker_uname:=rijobro}
 

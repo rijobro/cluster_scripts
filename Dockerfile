@@ -124,7 +124,12 @@ RUN python -m pip install --upgrade --user -r https://raw.githubusercontent.com/
 	python -m pip install --upgrade --user -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/requirements-dev.txt && \
     python -m pip install --upgrade --user -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/docs/requirements.txt &&  \
     python -m pip install --upgrade --user -r https://raw.githubusercontent.com/Project-MONAI/tutorials/master/requirements.txt && \
-    python -m pip install --upgrade --user ipywidgets torchsummary scikit-learn jupyterthemes
+    python -m pip install --upgrade --user ipywidgets torchsummary scikit-learn jupyterthemes tensorboard
+USER root
+# uninstall nvidia tensorboard as this conflicts with our installed package
+RUN python -m pip uninstall -y nvidia-tensorboard nvidia-tensorboard-plugin-dlprof
+USER ${UNAME}
+
 # Set up jupyter notebook, w/ blue or green theme
 RUN jt -t oceans16 -T -N
 #RUN jt -t monokai -f fira -fs 13 -nf ptsans -nfs 11 -N -kl -cursw 5 -cursc r -cellw 95% -T
