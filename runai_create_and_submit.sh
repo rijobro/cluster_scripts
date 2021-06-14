@@ -18,7 +18,7 @@ print_usage()
 	echo
 	echo '--gpu <val>               : Number of gpus to submit. Default: 1.'
 	echo '--job-name <val>          : Name of submitted job. Default: rb-monai.'
-	echo '--ssh-port <val>          : SSH port. Default: 30022.'
+	echo '--ssh-port <val>          : SSH port. Default: 30069.'
 	echo '--non-interactive         : By default, job is interactive. Use this to submit as non-interactive.'
 	echo
 }
@@ -31,7 +31,7 @@ print_usage()
 gpu=1
 job_name=rb-monai
 im_name=rb-monai
-ssh_port=30022
+ssh_port=30069
 interactive="--interactive"
 
 while [[ $# -gt 0 ]]
