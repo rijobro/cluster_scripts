@@ -28,7 +28,8 @@ print_usage()
 	echo
 	echo '--uname             : Username. Default: $(whoami).'
 	echo '--pwd_hash          : Password hash for sudo access. Can be generated with \"openssl passwd -6\".'
-	echo '                      Default: $6$JbDH1Je1XZgHvoBy$IBbclXaWLHv1ToyPYFS8sw7fCTfssidMqtF/gkJWxoF37m58wrK/3OK4CzotnoneB43i8O01MoOeb57zvx3Sk/.'
+	echo '                      Default: $6$hlNDjzLqt8DuY.xq$Ko02k2AapMgOobZCM2bHmw8Fa4GTw9H8N0HJNWdj7yI0L7paM7WTRxP2/xwTFvxOkq/C/tmZZkV11FTu4mhY3/
+.'
 	echo '--user_id           : User ID. Default: $UID.'
 	echo '--group_id          : Group ID. Default: $(id -g).'
 	echo '--groups            : Groups. Default: $(groups).'
@@ -142,7 +143,7 @@ done
 : ${docker_uname:=rijobro}
 
 : ${uname:=$(whoami)}
-: ${pwd_hash:='$6$JbDH1Je1XZgHvoBy$IBbclXaWLHv1ToyPYFS8sw7fCTfssidMqtF/gkJWxoF37m58wrK/3OK4CzotnoneB43i8O01MoOeb57zvx3Sk/'}
+: ${pwd_hash:='$6$hlNDjzLqt8DuY.xq$Ko02k2AapMgOobZCM2bHmw8Fa4GTw9H8N0HJNWdj7yI0L7paM7WTRxP2/xwTFvxOkq/C/tmZZkV11FTu4mhY3/'}
 : ${user_id:=$UID}
 : ${group_id:=$(id -g)}
 : ${groups:=$(groups)}
