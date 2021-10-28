@@ -28,8 +28,7 @@ print_usage()
 	echo
 	echo '--uname             : Username. Default: $(whoami).'
 	echo '--pwd_hash          : Password hash for sudo access. Can be generated with \"openssl passwd -6\".'
-	echo '                      Default: $6$hlNDjzLqt8DuY.xq$Ko02k2AapMgOobZCM2bHmw8Fa4GTw9H8N0HJNWdj7yI0L7paM7WTRxP2/xwTFvxOkq/C/tmZZkV11FTu4mhY3/
-.'
+	echo '                      Default: $6$hlNDjzLqt8DuY.xq$Ko02k2AapMgOobZCM2bHmw8Fa4GTw9H8N0HJNWdj7yI0L7paM7WTRxP2/xwTFvxOkq/C/tmZZkV11FTu4mhY3/.'
 	echo '--user_id           : User ID. Default: $UID.'
 	echo '--group_id          : Group ID. Default: $(id -g).'
 	echo '--groups            : Groups. Default: $(groups).'
