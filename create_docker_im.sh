@@ -22,7 +22,7 @@ print_usage()
 	echo '-h, --help          : Print this help.'
 	echo
 	echo '--docker_push       : Push the created image to dockerhub.'
-	echo '--docker_base       : Base docker image. Default: nvcr.io/nvidia/pytorch:21.05-py3.'
+	echo '--docker_base       : Base docker image. Default: nvcr.io/nvidia/pytorch:21.06-py3.'
 	echo '--docker_im_name    : Name of image to be uploaded to docker hub. Default: rb-monai.'
 	echo '--docker_uname      : Docker username for uploading to docker hub. Default: rijobro.'
 	echo
@@ -137,7 +137,7 @@ done
 
 # Default variables
 : ${docker_push:=false}
-: ${docker_base:=nvcr.io/nvidia/pytorch:21.05-py3}
+: ${docker_base:=nvcr.io/nvidia/pytorch:21.06-py3}
 : ${docker_im_name:=rb-monai}
 : ${docker_uname:=rijobro}
 

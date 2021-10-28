@@ -82,19 +82,16 @@ runai submit $job_name $interactive \
 	-g $gpu \
 	--port ${ssh_port}:2222 \
 	--host-ipc \
-	-v ~/Documents/Code/MONAI:/home/rbrown/Documents/Code/MONAI \
-	-v ~/Documents/Code/monai-tutorials:/home/rbrown/Documents/Code/monai-tutorials \
+	-v ~/Documents/Code:/home/rbrown/Documents/Code \
 	-v ~/Documents/Data:/home/rbrown/Documents/Data \
-	-v ~/Documents/Code/dgxscripts:/home/rbrown/Documents/Code/dgxscripts \
-	-v ~/Documents/Code/RealTimeSeg:/home/rbrown/Documents/Code/RealTimeSeg \
 	-v ~/.vscode-server:/home/rbrown/.vscode-server \
 	-v ~/Documents/Scratch:/home/rbrown/Documents/Scratch \
 	--command -- sh /home/rbrown/Documents/Code/dgxscripts/monaistartup.sh \
-		--ssh_server --pulse_audio --jupy \
+		--ssh_server --pulse_audio --jupy --tensorboard \
 		-e MONAI_DATA_DIRECTORY=/home/rbrown/Documents/Data/MONAI \
 		-e SYNAPSE_USER=rijobro \
 		-e SYNAPSE_PWD="synapsepassword4?" \
-		-e PYTHONPATH='/home/rbrown/Documents/Code/MONAI:/home/rbrown/Documents/Code/ptproto:${PYTHONPATH}' \
+		-e PYTHONPATH='/home/rbrown/Documents/Code/MONAI:/home/rbrown/Documents/Code/progan:${PYTHONPATH}' \
 		-e MONAI_EXTRA_TEST_DATA="/home/rbrown/Documents/Scratch/MONAI-extra-test-data" \
 		-a 'cdMONAI="cd /home/rbrown/Documents/Code/MONAI"'
 #                -e LD_LIBRARY_PATH='${LD_LIBRARY_PATH}:/home/rbrown/Documents/Code/opencv/Install/lib/:~/Documents/Code/libtorch/lib/' \

@@ -9,14 +9,16 @@ print_usage()
 	# Display Help
 	echo 'Script to be run at start of docker job.'
 	echo
-	echo 'Syntax: monaistartup.sh [-h|--help] [--jupy] [--ssh_server] [--compile_monai]'
-	echo '                        [--pulse_audio] [--python_path val] [-e|--env name=val]'
+	echo 'Syntax: monaistartup.sh [-h|--help] [--jupy] [--tensorboard] [--ssh_server]'
+	echo '                        [--compile_monai] [--pulse_audio] [--python_path val]'
+	echo '                        [-e|--env name=val]'
 	echo
 	echo 'options:'
 	echo '-h, --help                : Print this help.'
 	echo
 	echo '--compile_monai           : Compile MONAI code.'
 	echo '--jupy                    : Start a jupyter notebook'
+	echo '--tensorboard             : Start a tensorboard server'
 	echo '--ssh_server              : Start an SSH server.'
 	echo '--pulse_audio             : Use pulseaudio to send audio back to local machine.'
 	echo
@@ -45,6 +47,9 @@ do
 		--jupy)
 			jupy=true
 		;;
+		--tensorboard)
+			tensorboard=true
+		;;
 		--ssh_server)
 			ssh_server=true
 		;;
@@ -72,6 +77,7 @@ done
 
 # Default variables
 : ${jupy:=false}
+: ${tensorboard:=false}
 : ${ssh_server:=false}
 : ${pulse_audio:=false}
 : ${compile_monai:=false}
@@ -79,6 +85,7 @@ done
 echo
 echo
 echo "Start jupyter session: ${jupy}"
+echo "Start tensorboard session: ${tensorboard}"
 echo "SSH server: ${ssh_server}"
 echo "Pulseaudio (send audio to local): ${pulse_audio}"
 echo "Compile MONAI: ${compile_monai}"
@@ -122,7 +129,15 @@ fi
 
 # Jupyter notebook
 if [ "$jupy" = true ]; then
+	echo here jupy
 	nohup jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir="~" > ~/.jupyter_notebook.log 2>&1
+fi
+
+echo here tensorboard value: "$tensorboard"
+# Tensorboard
+if [ "$tensorboard" = true ]; then
+	echo here tnesorboard
+	nohup tensorboard --logdir=~/Documents/Data/TensorBoardRuns --port 8890 > ~/.tensorboard.log 2>&1
 fi
 
 # Compile MONAI cuda code

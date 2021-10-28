@@ -8,8 +8,8 @@ FROM $DOCKER_BASE
 ################################################################################
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update && apt upgrade -y && apt install -y \
-    openssh-server nano sudo htop ffmpeg libsm6 libxext6 gdb valgrind
-
+    openssh-server nano sudo htop ffmpeg libsm6 libxext6 \
+    gdb valgrind firefox x264 libx264-dev
 
 ################################################################################
 # Create user, assign to groups, set password, switch to new user
@@ -181,13 +181,30 @@ RUN cd ~/Documents/Code/Qt && chmod +x install-qt.sh && ./install-qt.sh --versio
 RUN echo "export PATH=$PATH:~/Documents/Code/Qt/Install/Tools/QtCreator/bin" >> ~/.bashrc
 
 
-
 ################################################################################
 # Libtorch
 ################################################################################
 RUN wget -O libtorch.zip https://download.pytorch.org/libtorch/cu111/libtorch-cxx11-abi-shared-with-deps-1.8.1%2Bcu111.zip
 RUN unzip libtorch.zip -d ~/Documents/Code
 RUN rm libtorch.zip
+
+
+################################################################################
+# GitKraken
+################################################################################
+RUN wget https://release.gitkraken.com/linux/gitkraken-amd64.deb
+USER root
+RUN sudo dpkg -i gitkraken-amd64.deb
+USER ${UNAME}
+RUN rm gitkraken-amd64.deb
+
+
+################################################################################
+# Allow watching large folder in VSCode
+################################################################################
+USER root
+RUN echo "fs.inotify.max_user_watches=524288" >> /etc/sysctl.conf
+USER ${UNAME}
 
 
 ################################################################################
@@ -198,4 +215,4 @@ RUN rm -rf /var/lib/apt/lists/*
 USER ${UNAME}
 ################################################################################
 
-CMD /usr/sbin/sshd -D -f ~/.ssh/sshd_config -E ~/.ssh/sshd.log
+# CMD /usr/sbin/sshd -D -f ~/.ssh/sshd_config -E ~/.ssh/sshd.log
