@@ -20,6 +20,7 @@ print_usage()
 	echo '--job-name <val>          : Name of submitted job. Default: rb-monai.'
 	echo '--ssh-port <val>          : SSH port. Default: 30069.'
 	echo '--non-interactive         : By default, job is interactive. Use this to submit as non-interactive.'
+	echo '--extra_cmds              : Extra commands to be appended to startup script (e.g., `cd somewhere && python some_file.py`).'
 	echo
 }
 
@@ -57,6 +58,10 @@ do
 		--non-interactive)
 			interactive=""
 		;;
+		--extra_cmds)
+			extra_cmds=$2
+			shift
+		;;
 		*)
 			echo -e "\n\nUnknown argument: $key\n\n"
 			print_usage
@@ -75,6 +80,17 @@ cd "$(dirname "$0")"
 # Delete previously running job
 runai delete $job_name 2> /dev/null
 
+# Create startup script with any additional commands
+mkdir -p ~/tmp
+startup_file=monai_startup_$(date +"%Y-%m-%d_%H-%M-%S").sh
+cp ~/Documents/Code/dgxscripts/monaistartup.sh ~/tmp/$startup_file
+if [[ -v extra_cmds ]]; then
+	echo -e $extra_cmds >> ~/tmp/$startup_file
+else
+	echo "sleep infinity" >> ~/tmp/$startup_file
+fi
+
+
 # Submit job
 runai submit $job_name $interactive \
 	--service-type=nodeport \
@@ -86,7 +102,8 @@ runai submit $job_name $interactive \
 	-v ~/Documents/Data:/home/rbrown/Documents/Data \
 	-v ~/.vscode-server:/home/rbrown/.vscode-server \
 	-v ~/Documents/Scratch:/home/rbrown/Documents/Scratch \
-	--command -- sh /home/rbrown/Documents/Code/dgxscripts/monaistartup.sh \
+	-v ~/tmp:/home/rbrown/tmp \
+	--command -- sh /home/rbrown/tmp/$startup_file \
 		--ssh_server --pulse_audio --jupy --tensorboard \
 		-e MONAI_DATA_DIRECTORY=/home/rbrown/Documents/Data/MONAI \
 		-e SYNAPSE_USER=rijobro \

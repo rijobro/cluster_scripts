@@ -129,15 +129,12 @@ fi
 
 # Jupyter notebook
 if [ "$jupy" = true ]; then
-	echo here jupy
-	nohup jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir="~" > ~/.jupyter_notebook.log 2>&1
+	nohup jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir="~" > ~/.jupyter_notebook.log 2>&1 &
 fi
 
-echo here tensorboard value: "$tensorboard"
 # Tensorboard
 if [ "$tensorboard" = true ]; then
-	echo here tnesorboard
-	nohup tensorboard --logdir=~/Documents/Data/TensorBoardRuns --port 8890 > ~/.tensorboard.log 2>&1
+	nohup tensorboard --logdir=~/Documents/Data/TensorBoardRuns --port 8890 > ~/.tensorboard.log 2>&1 &
 fi
 
 # Compile MONAI cuda code
@@ -145,5 +142,3 @@ if [ "$compile_monai" = true ]; then
 	cd ~/Documents/Code/MONAI
 	BUILD_MONAI=1 python setup.py develop
 fi
-
-sleep infinity
