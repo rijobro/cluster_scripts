@@ -18,8 +18,8 @@ print_usage()
 	echo
 	echo '--gpu <val>               : Number of gpus to submit. Default: 1.'
 	echo '--job-name <val>          : Name of submitted job. Default: rb-monai.'
-	echo '--ssh-port <val>          : SSH port. Default: 30069.'
-	echo '--non-interactive         : By default, job is interactive. Use this to submit as non-interactive.'
+	echo '--ssh-port <val>          : make accessible via SSH through given port.'
+	echo '--interactive             : Submit as interactive job.'
 	echo '--extra_cmds              : Extra commands to be appended to startup script (e.g., `cd somewhere && python some_file.py`).'
 	echo
 }
@@ -32,8 +32,6 @@ print_usage()
 gpu=1
 job_name=rb-monai
 im_name=rb-monai
-ssh_port=30069
-interactive="--interactive"
 
 while [[ $# -gt 0 ]]
 do
@@ -53,10 +51,11 @@ do
 		;;
 		--ssh-port)
 			ssh_port=$2
+			ssh="--port ${ssh_port}:2222"
 			shift
 		;;
-		--non-interactive)
-			interactive=""
+		--interactive)
+			interactive="--interactive --service-type=nodeport"
 		;;
 		--extra_cmds)
 			extra_cmds=$2
@@ -78,7 +77,7 @@ cd "$(dirname "$0")"
 # ./create_docker_im.sh --docker_push
 
 # Delete previously running job
-runai delete $job_name 2> /dev/null
+runai delete $job_name > /dev/null 2>&1
 
 # Create startup script with any additional commands
 mkdir -p ~/tmp
@@ -92,11 +91,9 @@ fi
 
 
 # Submit job
-runai submit $job_name $interactive \
-	--service-type=nodeport \
+runai submit $job_name $interactive $ssh \
 	-i rijobro/$im_name:latest \
 	-g $gpu \
-	--port ${ssh_port}:2222 \
 	--host-ipc \
 	-v ~/Documents/Code:/home/rbrown/Documents/Code \
 	-v ~/Documents/Data:/home/rbrown/Documents/Data \

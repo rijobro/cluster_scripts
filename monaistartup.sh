@@ -122,19 +122,9 @@ if [ "$ssh_server" = true ]; then
 	nohup /usr/sbin/sshd -D -f ~/.ssh/sshd_config -E ~/.ssh/sshd.log &
 fi
 
-# Pulseaudio (send audio back to local terminal)
-if [ "$pulse_audio" = true ]; then
-	pulseaudio --start
-fi
-
 # Jupyter notebook
 if [ "$jupy" = true ]; then
 	nohup jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir="~" > ~/.jupyter_notebook.log 2>&1 &
-fi
-
-# Tensorboard
-if [ "$tensorboard" = true ]; then
-	nohup tensorboard --logdir=~/Documents/Data/TensorBoardRuns --port 8890 > ~/.tensorboard.log 2>&1 &
 fi
 
 # Compile MONAI cuda code
