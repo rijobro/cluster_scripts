@@ -111,91 +111,18 @@ EXPOSE 2222
 ################################################################################
 # Pip install requirements and set up jupyter notebook
 ################################################################################
-RUN python -m pip install --upgrade --user -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/requirements.txt && \
-	python -m pip install --upgrade --user -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/requirements-dev.txt && \
-    python -m pip install --upgrade --user -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/docs/requirements.txt &&  \
-    python -m pip install --upgrade --user -r https://raw.githubusercontent.com/Project-MONAI/tutorials/master/requirements.txt && \
-    python -m pip install --upgrade --user ipywidgets torchsummary scikit-learn jupyterthemes tensorboard tensorboardX moviepy
 USER root
-# uninstall nvidia tensorboard as this conflicts with our installed package
-RUN python -m pip uninstall -y nvidia-tensorboard nvidia-tensorboard-plugin-dlprof
+RUN python -m pip install --upgrade -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/requirements.txt
+RUN python -m pip install --upgrade -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/requirements-dev.txt
+RUN python -m pip install --upgrade -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/docs/requirements.txt
+RUN python -m pip install --upgrade -r https://raw.githubusercontent.com/Project-MONAI/tutorials/master/requirements.txt
+RUN python -m pip install --upgrade ipywidgets torchsummary scikit-learn jupyterthemes
+RUN conda install -c conda-forge moviepy tensorboardx
 USER ${UNAME}
 
 # Set up jupyter notebook, w/ blue or green theme
 RUN jt -t oceans16 -T -N
 #RUN jt -t monokai -f fira -fs 13 -nf ptsans -nfs 11 -N -kl -cursw 5 -cursc r -cellw 95% -T
-
-
-# ################################################################################
-# # NVIDIA OpenCV
-# ################################################################################
-# # Dependencies
-# USER root
-# RUN apt install -y libavcodec-dev libavformat-dev libswscale-dev \
-#     libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev \
-#     libpng-dev libjpeg-dev libopenexr-dev libtiff-dev libwebp-dev \
-#     libpython2-dev python-numpy libgtk2.0-dev
-# USER ${UNAME}
-
-# RUN mkdir ~/Documents/Code/opencv
-# RUN cd ~/Documents/Code/opencv && \
-#     git clone https://github.com/opencv/opencv.git Source && \
-#     git clone https://github.com/opencv/opencv_contrib.git
-
-# COPY build_opencv.sh /home/${UNAME}/Documents/Code/opencv
-# RUN mkdir ~/Documents/Code/opencv/Build && cd ~/Documents/Code/opencv/Build && sh ../build_opencv.sh
-# # RUN pip install opencv-python
-
-
-# ################################################################################
-# # VNC
-# ################################################################################
-# RUN mkdir -p ~/.vnc
-# COPY xstartup /home/${UNAME}/.vnc
-# USER root
-# RUN apt install -y xfce4 xfce4-goodies tigervnc-standalone-server
-# RUN chmod +x /home/${UNAME}/.vnc/xstartup
-# USER ${UNAME}
-# # Run it to set the password (then kill it straight away)
-# ARG VNC_PWD
-# RUN printf "${VNC_PWD}\n${VNC_PWD}\n" | vncserver && vncserver -kill :1
-
-
-# ################################################################################
-# # Qt creator
-# ################################################################################
-# USER root
-# RUN sudo apt install -y libxcb-xinerama0
-# USER ${UNAME}
-# RUN mkdir ~/Documents/Code/Qt && cd ~/Documents/Code/Qt && wget https://code.qt.io/cgit/qbs/qbs.git/plain/scripts/install-qt.sh
-# RUN cd ~/Documents/Code/Qt && chmod +x install-qt.sh && ./install-qt.sh --version 4.14.2 -d ~/Documents/Code/Qt/Install qtcreator
-# RUN echo "export PATH=$PATH:~/Documents/Code/Qt/Install/Tools/QtCreator/bin" >> ~/.bashrc
-
-
-# ################################################################################
-# # Libtorch
-# ################################################################################
-# RUN wget -O libtorch.zip https://download.pytorch.org/libtorch/cu111/libtorch-cxx11-abi-shared-with-deps-1.8.1%2Bcu111.zip
-# RUN unzip libtorch.zip -d ~/Documents/Code
-# RUN rm libtorch.zip
-
-
-# ################################################################################
-# # GitKraken
-# ################################################################################
-# RUN wget https://release.gitkraken.com/linux/gitkraken-amd64.deb
-# USER root
-# RUN sudo dpkg -i gitkraken-amd64.deb
-# USER ${UNAME}
-# RUN rm gitkraken-amd64.deb
-
-
-################################################################################
-# Allow watching large folder in VSCode
-################################################################################
-USER root
-RUN echo "fs.inotify.max_user_watches=524288" >> /etc/sysctl.conf
-USER ${UNAME}
 
 
 ################################################################################
@@ -204,6 +131,3 @@ USER ${UNAME}
 USER root
 RUN rm -rf /var/lib/apt/lists/*
 USER ${UNAME}
-################################################################################
-
-# CMD /usr/sbin/sshd -D -f ~/.ssh/sshd_config -E ~/.ssh/sshd.log

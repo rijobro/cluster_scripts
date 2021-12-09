@@ -11,14 +11,16 @@ print_usage()
 	echo 'Script to submit a runai job.'
 	echo
 	echo 'Syntax: runai_create_and_submit.sh [-h|--help] [-g|--gpu <num>] [--job-name <name>]'
-	echo '                                   [--ssh-port <num>] [--non-interactive]'
+	echo '                                   [--ssh-port <num>] [--non-interactive] [--create]'
 	echo
 	echo 'options:'
 	echo '-h, --help                : Print this help.'
 	echo
+	echo '--create                  : Run the `create_docker_im.sh` script and push the image.'
+	echo
 	echo '--gpu <val>               : Number of gpus to submit. Default: 1.'
 	echo '--job-name <val>          : Name of submitted job. Default: rb-monai.'
-	echo '--ssh-port <val>          : make accessible via SSH through given port.'
+	echo '--ssh-port <val>          : make accessible via SSH through given port. If `--interactive`, default: 30069'
 	echo '--interactive             : Submit as interactive job.'
 	echo '--extra_cmds              : Extra commands to be appended to startup script (e.g., `cd somewhere && python some_file.py`).'
 	echo
@@ -41,6 +43,9 @@ do
 			print_usage
 			exit 0
 		;;
+		--create)
+			create=true
+		;;
 		-g|--gpu)
 			gpu=$2
 			shift
@@ -50,12 +55,12 @@ do
 			shift
 		;;
 		--ssh-port)
+			use_ssh=true
 			ssh_port=$2
-			ssh="--port ${ssh_port}:2222"
 			shift
 		;;
 		--interactive)
-			interactive="--interactive --service-type=nodeport"
+			interactive=true
 		;;
 		--extra_cmds)
 			extra_cmds=$2
@@ -70,11 +75,27 @@ do
 	shift
 done
 
+# Default variables
+: ${create:=false}
+: ${ssh_port:=30069}
+
+if [ "$interactive" = true ]; then
+	use_ssh=true
+	interactive="--interactive --service-type=nodeport"
+fi
+
+if [ "$use_ssh" = true ]; then
+	ssh="--port ${ssh_port}:2222"
+fi
+
+
 # Move to current directory
 cd "$(dirname "$0")"
 
 # Update docker image if necessary
-# ./create_docker_im.sh --docker_push
+if [ "$create" = true ]; then
+	./create_docker_im.sh --docker_push
+fi
 
 # Delete previously running job
 runai delete $job_name > /dev/null 2>&1
@@ -100,6 +121,8 @@ runai submit $job_name $interactive $ssh \
 	-v ~/.vscode-server:/home/rbrown/.vscode-server \
 	-v ~/Documents/Scratch:/home/rbrown/Documents/Scratch \
 	-v ~/tmp:/home/rbrown/tmp \
+	--backoff-limit 0 \
+	--run-as-user \
 	--command -- sh /home/rbrown/tmp/$startup_file \
 		--ssh_server --pulse_audio --jupy --tensorboard \
 		-e MONAI_DATA_DIRECTORY=/home/rbrown/Documents/Data/MONAI \
