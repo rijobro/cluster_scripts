@@ -45,6 +45,7 @@ RUN mkdir ~/Documents ~/Documents/Code
 # Set paths
 ################################################################################
 ENV PATH "/home/${UNAME}/.local/bin:$PATH"
+RUN echo "export HOME=/home/${UNAME}" >> ~/.bashrc
 RUN echo "export PATH=/home/${UNAME}/.local/bin:$PATH" >> ~/.bashrc
 RUN echo "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> ~/.bashrc
 RUN echo "source /home/${UNAME}/.bashrc" >> ~/.bash_profile

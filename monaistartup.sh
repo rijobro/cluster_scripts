@@ -99,12 +99,11 @@ for alias in "${aliases[@]}"; do
 	echo -e "\t${alias}"
 done
 echo
-echo Currently running under the user: $(whoami)
-echo
 
 set -e # exit on error
 set -x # print command before doing it
 
+export HOME=/home/$(whoami)
 source ~/.bashrc
 
 # Add any environmental variables
