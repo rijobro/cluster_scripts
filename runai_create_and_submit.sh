@@ -88,7 +88,6 @@ if [ "$use_ssh" = true ]; then
 	ssh="--port ${ssh_port}:2222"
 fi
 
-
 # Move to current directory
 cd "$(dirname "$0")"
 
@@ -126,9 +125,7 @@ runai submit $job_name $interactive $ssh \
 	--command -- sh /home/rbrown/tmp/$startup_file \
 		--ssh_server --pulse_audio --jupy --tensorboard \
 		-e MONAI_DATA_DIRECTORY=/home/rbrown/Documents/Data/MONAI \
-		-e SYNAPSE_USER=rijobro \
-		-e SYNAPSE_PWD="synapsepassword4?" \
-		-e PYTHONPATH='/home/rbrown/Documents/Code/MONAI:/home/rbrown/Documents/Code/progan:${PYTHONPATH}' \
+		-e PYTHONPATH='/home/rbrown/Documents/Code/MONAI:/home/rbrown/Documents/Code/progan/home/rbrown/Documents/Code/ProstateSeg:${PYTHONPATH}' \
 		-e MONAI_EXTRA_TEST_DATA="/home/rbrown/Documents/Scratch/MONAI-extra-test-data" \
 		-a 'cdMONAI="cd /home/rbrown/Documents/Code/MONAI"'
 #                -e LD_LIBRARY_PATH='${LD_LIBRARY_PATH}:/home/rbrown/Documents/Code/opencv/Install/lib/:~/Documents/Code/libtorch/lib/' \
