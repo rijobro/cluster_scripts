@@ -65,8 +65,8 @@ RUN echo "c.NotebookApp.password = '${JUPY_PWD_HASH}'" >> ~/.jupyter/jupyter_not
 ################################################################################
 # Custom bashrc additions
 ################################################################################
-RUN cd ~/Documents/Code/ && git clone https://github.com/rijobro/bash_profile.git
-RUN echo "source /home/${UNAME}/Documents/Code/bash_profile/rich_bashrc.sh" >> ~/.bashrc
+RUN git clone https://github.com/rijobro/bash_profile.git
+RUN echo "source bash_profile/rich_bashrc.sh" >> ~/.bashrc
 
 
 ################################################################################
