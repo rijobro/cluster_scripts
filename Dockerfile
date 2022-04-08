@@ -36,20 +36,15 @@ RUN touch /var/run/motd.new
 # Change to user
 WORKDIR /home/${UNAME}
 USER ${UNAME}
-RUN mkdir ~/Documents ~/Documents/Code
 
 
 ################################################################################
 # Set paths
 ################################################################################
-ENV PATH "/home/${UNAME}/.local/bin:$PATH"
 RUN echo "export HOME=/home/${UNAME}" >> ~/.bashrc
-RUN echo "export PATH=/home/${UNAME}/.local/bin:$PATH" >> ~/.bashrc
-RUN echo "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> ~/.bashrc
 RUN echo "source /home/${UNAME}/.bashrc" >> ~/.bash_profile
-# Misc bash
-RUN echo "export TERM=xterm" >> ~/.bashrc
-RUN echo "export DEBUGPY_EXCEPTION_FILTER_USER_UNHANDLED=1" >> ~/.bashrc
+ENV PATH "/home/${UNAME}/.local/bin:$PATH"
+RUN echo "export PATH=/home/${UNAME}/.local/bin:$PATH" >> ~/.bashrc
 # Colourful bash
 RUN echo "PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\[\033[1;31m\]\$\[\033[0m\]'" >> ~/.bashrc
 
@@ -95,6 +90,7 @@ COPY id_rsa.pub .
 RUN paste -d "\n" authorized_keys id_rsa.pub > ~/.ssh/authorized_keys
 RUN rm authorized_keys id_rsa.pub
 
+# Our non-sudo SSHD will run on 2222
 EXPOSE 2222
 
 
