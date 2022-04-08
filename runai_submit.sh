@@ -98,9 +98,11 @@ cd "$(dirname "$0")"
 runai delete $job_name > /dev/null 2>&1
 
 # Create startup script with any additional commands
+# The file is created with a timestamp so that concurrent
+# jobs can each potentially have different arguments
 mkdir -p ~/tmp
 startup_file=monai_startup_$(date +"%Y-%m-%d_%H-%M-%S").sh
-cp ~/Documents/Code/dgxscripts/monaistartup.sh ~/tmp/$startup_file
+cp ~/Documents/Code/dgxscripts/runai_startup.sh ~/tmp/$startup_file
 if [[ -v extra_cmds ]]; then
 	echo -e $extra_cmds >> ~/tmp/$startup_file
 else

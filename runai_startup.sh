@@ -9,9 +9,9 @@ print_usage()
 	# Display Help
 	echo 'Script to be run at start of docker job.'
 	echo
-	echo 'Syntax: monaistartup.sh [-h|--help] [--jupy] [--ssh_server]'
-	echo '                        [--compile_monai] [--python_path val]'
-	echo '                        [-e|--env name=val]'
+	echo 'Syntax: runai_startup.sh [-h|--help] [--jupy] [--ssh_server]'
+	echo '                         [--compile_monai] [--python_path val]'
+	echo '                         [-e|--env name=val]'
 	echo
 	echo 'options:'
 	echo '-h, --help                : Print this help.'

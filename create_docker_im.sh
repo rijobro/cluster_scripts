@@ -11,11 +11,7 @@ print_usage()
 	echo 'Build docker image and upload it to docker hub.'
 	echo
 	echo 'Syntax: create_docker_im.sh [-h|--help] [--docker_push] [--docker_base im] [--docker_im_name name]'
-	echo '                            [--docker_uname uname] [--uname uname] [--pwd_hash pwd_hash] [--user_id user_id]'
-	echo '                            [--group_id group_id] [--groups groups] [--gids gids]'
-	echo '                            [--jupy_pwd_hash]'
-	echo '                            [--auth_keys_path path] [--id_rsa_path path]'
-	echo '                            [--docker_args args]'
+	echo '                            [--pwd_hash pwd_hash] [--jupy_pwd_hash] [--docker_args args]'
 	echo
 	echo 'options:'
 	echo '-h, --help          : Print this help.'
@@ -23,23 +19,13 @@ print_usage()
 	echo '--docker_push       : Push the created image to dockerhub.'
 	echo '--docker_base       : Base docker image. Default: nvcr.io/nvidia/pytorch:22.03-py3.'
 	echo '--docker_im_name    : Name of image to be uploaded to docker hub. Default: rb-monai.'
-	echo '--docker_uname      : Docker username for uploading to docker hub. Default: rijobro.'
 	echo
-	echo '--uname             : Username. Default: $(whoami).'
 	echo '--pwd_hash          : Password hash for sudo access. Can be generated with \"openssl passwd -6\".'
 	echo '                      Default: $6$hlNDjzLqt8DuY.xq$Ko02k2AapMgOobZCM2bHmw8Fa4GTw9H8N0HJNWdj7yI0L7paM7WTRxP2/xwTFvxOkq/C/tmZZkV11FTu4mhY3/.'
-	echo '--user_id           : User ID. Default: $UID.'
-	echo '--group_id          : Group ID. Default: $(id -g).'
-	echo '--groups            : Groups. Default: $(groups).'
-	echo '--gids              : GIDs. Default: $(getent group $(groups) | awk -F: "{print $3}").'
-	echo
 	echo '--jupy_pwd_hash     : Jupyter notebook password hash. Can be generated with python -c "from notebook.auth import passwd; print(passwd())"'
 	echo '                      Default: argon2:$argon2id$v=19$m=10240,t=10,p=8$k9uoAnn3KFfJWO3SNMvYmQ$r8E9SnfzkkM4+SiQpIliJw'
 	echo
-	echo '--auth_keys_path    : Path to "auth_keys_path". Default: ~/.ssh/authorized_keys.'
-	echo '--id_rsa_path       : Path to "id_rsa_path". Default: ~/.ssh/id_rsa_path.'
-	echo
-	echo '--docker_args       : Pass the any extra arguments onto the docker build'
+	echo '--docker_args       : Pass the any extra arguments onto the docker build (e.g., `--docker_args --no-cache`)'
 	echo
 }
 
@@ -65,44 +51,12 @@ do
 			docker_im_name="$2"
 			shift
 		;;
-		--docker_uname)
-			docker_uname="$2"
-			shift
-		;;
-		--uname)
-			uname="$2"
-			shift
-		;;
 		--pwd_hash)
 			pwd_hash="$2"
 			shift
 		;;
-		--user_id)
-			user_id="$2"
-			shift
-		;;
-		--group_id)
-			group_id="$2"
-			shift
-		;;
-		--groups)
-			groups="$2"
-			shift
-		;;
-		--gids)
-			gids="$2"
-			shift
-		;;
 		--jupy_pwd_hash)
 			jupy_pwd_hash="$2"
-			shift
-		;;
-		--auth_keys_path)
-			auth_keys_path="$2"
-			shift
-		;;
-		--id_rsa_path)
-			id_rsa_path="$2"
 			shift
 		;;
 		--docker_args)
@@ -121,37 +75,24 @@ done
 : ${docker_push:=false}
 : ${docker_base:=nvcr.io/nvidia/pytorch:22.03-py3}
 : ${docker_im_name:=rb-monai}
-: ${docker_uname:=rijobro}
-
-: ${uname:=$(whoami)}
 : ${pwd_hash:='$6$hlNDjzLqt8DuY.xq$Ko02k2AapMgOobZCM2bHmw8Fa4GTw9H8N0HJNWdj7yI0L7paM7WTRxP2/xwTFvxOkq/C/tmZZkV11FTu4mhY3/'}
-: ${user_id:=$UID}
-: ${group_id:=$(id -g)}
-: ${groups:=$(groups)}
-: ${gids:=$(getent group $(groups) | awk -F: '{print $3}')}
-
 : ${jupy_pwd_hash:='argon2:$argon2id$v=19$m=10240,t=10,p=8$k9uoAnn3KFfJWO3SNMvYmQ$r8E9SnfzkkM4+SiQpIliJw'}
 
-: ${auth_keys_path:=$HOME/.ssh/authorized_keys}
-: ${id_rsa_path:=$HOME/.ssh/id_rsa.pub}
+# Fixed variables
+uname=$(whoami)
+user_id=$UID
+group_id=$(id -g)
+groups=$(groups)
+gids=$(getent group $(groups) | awk -F: '{print $3}')
+auth_keys_path=$HOME/.ssh/authorized_keys
+id_rsa_path=$HOME/.ssh/id_rsa.pub
+docker_uname=$(docker info 2> /dev/null | sed '/Username:/!d;s/.* //')
 
 echo
 echo
 echo "Base docker image: ${docker_base}"
 echo "Generated image name: ${docker_im_name}"
 echo "Docker username: ${docker_uname}"
-echo
-echo "Username: ${uname}"
-echo "Password hash: ${pwd_hash}"
-echo "User ID: ${user_id}"
-echo "Group ID: ${group_id}"
-echo "Groups: ${groups}"
-echo "GIDs: ${gids}"
-echo
-echo "Jupyter password hash: ${jupy_pwd_hash}"
-echo
-echo "Location of auth_keys_path: ${auth_keys_path}"
-echo "Location of id_rsa_path: ${id_rsa_path}"
 echo
 echo
 
