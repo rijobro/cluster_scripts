@@ -9,8 +9,8 @@ print_usage()
 	# Display Help
 	echo 'Script to be run at start of docker job.'
 	echo
-	echo 'Syntax: monaistartup.sh [-h|--help] [--jupy] [--tensorboard] [--ssh_server]'
-	echo '                        [--compile_monai] [--pulse_audio] [--python_path val]'
+	echo 'Syntax: monaistartup.sh [-h|--help] [--jupy] [--ssh_server]'
+	echo '                        [--compile_monai] [--python_path val]'
 	echo '                        [-e|--env name=val]'
 	echo
 	echo 'options:'
@@ -18,9 +18,7 @@ print_usage()
 	echo
 	echo '--compile_monai           : Compile MONAI code.'
 	echo '--jupy                    : Start a jupyter notebook'
-	echo '--tensorboard             : Start a tensorboard server'
 	echo '--ssh_server              : Start an SSH server.'
-	echo '--pulse_audio             : Use pulseaudio to send audio back to local machine.'
 	echo
 	echo '-e, --env <name=val>      : Environmental variable, given as "NAME=VAL".'
 	echo '                            Can be used multiple times.'
@@ -47,14 +45,8 @@ do
 		--jupy)
 			jupy=true
 		;;
-		--tensorboard)
-			tensorboard=true
-		;;
 		--ssh_server)
 			ssh_server=true
-		;;
-		--pulse_audio)
-			pulse_audio=true
 		;;
 		-e|--env)
 			if [[ -z "${envs}" ]]; then envs=(); fi
@@ -77,17 +69,13 @@ done
 
 # Default variables
 : ${jupy:=false}
-: ${tensorboard:=false}
 : ${ssh_server:=false}
-: ${pulse_audio:=false}
 : ${compile_monai:=false}
 
 echo
 echo
 echo "Start jupyter session: ${jupy}"
-echo "Start tensorboard session: ${tensorboard}"
 echo "SSH server: ${ssh_server}"
-echo "Pulseaudio (send audio to local): ${pulse_audio}"
 echo "Compile MONAI: ${compile_monai}"
 echo
 echo "Environmental variables:"

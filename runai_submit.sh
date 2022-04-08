@@ -10,16 +10,15 @@ print_usage()
 	# Display Help
 	echo 'Script to submit a runai job.'
 	echo
-	echo 'Syntax: runai_create_and_submit.sh [-h|--help] [-g|--gpu <num>] [--job-name <name>]'
-	echo '                                   [--ssh-port <num>] [--non-interactive] [--create]'
+	echo 'Syntax: runai_submit.sh [-h|--help] [-g|--gpu <num>] [--job-name <name>] [--im-name <name>]'
+	echo '                        [--ssh-port <num>] [--non-interactive] [--create]'
 	echo
 	echo 'options:'
 	echo '-h, --help                : Print this help.'
 	echo
-	echo '--create                  : Run the `create_docker_im.sh` script and push the image.'
-	echo
 	echo '--gpu <val>               : Number of gpus to submit. Default: 1.'
 	echo '--job-name <val>          : Name of submitted job. Default: rb-monai.'
+	echo '--im-name <val>           : Name of docker image ot be run. Default: rb-monai.'
 	echo '--ssh-port <val>          : make accessible via SSH through given port. If `--interactive`, default: 30069'
 	echo '--interactive             : Submit as interactive job.'
 	echo '--extra_cmds              : Extra commands to be appended to startup script (e.g., `cd somewhere && python some_file.py`).'
@@ -52,6 +51,10 @@ do
 		;;
 		--job-name)
 			job_name=$2
+			shift
+		;;
+		--im-name)
+			im_name=$2
 			shift
 		;;
 		--ssh-port)
@@ -91,11 +94,6 @@ fi
 # Move to current directory
 cd "$(dirname "$0")"
 
-# Update docker image if necessary
-if [ "$create" = true ]; then
-	./create_docker_im.sh --docker_push
-fi
-
 # Delete previously running job
 runai delete $job_name > /dev/null 2>&1
 
@@ -125,10 +123,8 @@ runai submit $job_name $interactive $ssh \
 	--command -- sh /home/rbrown/tmp/$startup_file \
 		--ssh_server --pulse_audio --jupy --tensorboard \
 		-e MONAI_DATA_DIRECTORY=/home/rbrown/Documents/Data/MONAI \
-		-e PYTHONPATH='/home/rbrown/Documents/Code/MONAI:/home/rbrown/Documents/Code/ProstateSeg:${PYTHONPATH}' \
-		-e MONAI_EXTRA_TEST_DATA="/home/rbrown/Documents/Scratch/MONAI-extra-test-data" \
+		-e PYTHONPATH='/home/rbrown/Documents/Code/MONAI:${PYTHONPATH}' \
 		-a 'cdMONAI="cd /home/rbrown/Documents/Code/MONAI"'
-#                -e LD_LIBRARY_PATH='${LD_LIBRARY_PATH}:/home/rbrown/Documents/Code/opencv/Install/lib/:~/Documents/Code/libtorch/lib/' \
 
 # Get job status
 function get_status {

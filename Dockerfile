@@ -6,10 +6,8 @@ FROM $DOCKER_BASE
 ################################################################################
 # Install misc required packages
 ################################################################################
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt update && apt upgrade -y && apt install -y \
-    openssh-server nano sudo htop ffmpeg libsm6 libxext6 \
-    gdb valgrind firefox x264 libx264-dev
+RUN apt update && apt upgrade -y && apt install -y openssh-server nano sudo htop
+
 
 ################################################################################
 # Create user, assign to groups, set password, switch to new user
@@ -54,15 +52,6 @@ RUN echo "export TERM=xterm" >> ~/.bashrc
 RUN echo "export DEBUGPY_EXCEPTION_FILTER_USER_UNHANDLED=1" >> ~/.bashrc
 # Colourful bash
 RUN echo "PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\[\033[1;31m\]\$\[\033[0m\]'" >> ~/.bashrc
-
-
-################################################################################
-# Github credentials
-################################################################################
-ARG GITHUB_NAME
-ARG GITHUB_EMAIL
-RUN git config --global user.name ${GITHUB_NAME}
-RUN git config --global user.email ${GITHUB_EMAIL}
 
 
 ################################################################################
@@ -121,13 +110,12 @@ RUN python -m pip install --upgrade ipywidgets torchsummary scikit-learn jupyter
 RUN conda install -c conda-forge moviepy tensorboardx
 USER ${UNAME}
 
-# Set up jupyter notebook, w/ blue or green theme
+# Set up jupyter notebook, w/ blue theme
 RUN jt -t oceans16 -T -N
-#RUN jt -t monokai -f fira -fs 13 -nf ptsans -nfs 11 -N -kl -cursw 5 -cursc r -cellw 95% -T
 
 
 ################################################################################
-# Clear apt install cache
+# Clear apt install cache (smaller image for docker push)
 ################################################################################
 USER root
 RUN rm -rf /var/lib/apt/lists/*
