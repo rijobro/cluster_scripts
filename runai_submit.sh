@@ -11,7 +11,7 @@ print_usage()
 	echo 'Script to submit a runai job.'
 	echo
 	echo 'Syntax: runai_submit.sh [-h|--help] [-g|--gpu <num>] [--job-name <name>] [--im-name <name>]'
-	echo '                        [--ssh-port <num>] [--non-interactive] [--create]'
+	echo '                        [--ssh-port <num>] [--interactive] [--exta_cmds <cmds>]'
 	echo
 	echo 'options:'
 	echo '-h, --help                : Print this help.'
@@ -19,7 +19,7 @@ print_usage()
 	echo '--gpu <val>               : Number of gpus to submit. Default: 1.'
 	echo '--job-name <val>          : Name of submitted job. Default: rb-monai.'
 	echo '--im-name <val>           : Name of docker image ot be run. Default: rb-monai.'
-	echo '--ssh-port <val>          : make accessible via SSH through given port. If `--interactive`, default: 30069'
+	echo '--ssh-port <val>          : make accessible via SSH through given port. Default: 30069.'
 	echo '--interactive             : Submit as interactive job.'
 	echo '--extra_cmds              : Extra commands to be appended to startup script (e.g., `cd somewhere && python some_file.py`).'
 	echo
@@ -42,9 +42,6 @@ do
 			print_usage
 			exit 0
 		;;
-		--create)
-			create=true
-		;;
 		-g|--gpu)
 			gpu=$2
 			shift
@@ -58,7 +55,6 @@ do
 			shift
 		;;
 		--ssh-port)
-			use_ssh=true
 			ssh_port=$2
 			shift
 		;;
@@ -79,23 +75,17 @@ do
 done
 
 # Default variables
-: ${create:=false}
 : ${ssh_port:=30069}
 
 if [ "$interactive" = true ]; then
-	use_ssh=true
-	interactive="--interactive --service-type=nodeport"
-fi
-
-if [ "$use_ssh" = true ]; then
-	ssh="--port ${ssh_port}:2222"
+	interactive="--interactive"
 fi
 
 # Move to current directory
 cd "$(dirname "$0")"
 
 # Delete previously running job
-runai delete $job_name > /dev/null 2>&1
+runai delete job $job_name > /dev/null 2>&1
 
 # Create startup script with any additional commands
 # The file is created with a timestamp so that concurrent
@@ -111,7 +101,8 @@ fi
 
 
 # Submit job
-runai submit $job_name $interactive $ssh \
+runai submit $job_name $interactive \
+    --port ${ssh_port}:2222 --service-type=nodeport \
 	-i rijobro/$im_name:latest \
 	-g $gpu \
 	--host-ipc \
@@ -123,7 +114,7 @@ runai submit $job_name $interactive $ssh \
 	--backoff-limit 0 \
 	--run-as-user \
 	--command -- sh /home/rbrown/tmp/$startup_file \
-		--ssh_server --pulse_audio --jupy --tensorboard \
+		--ssh_server --jupy \
 		-e MONAI_DATA_DIRECTORY=/home/rbrown/Documents/Data/MONAI \
 		-e PYTHONPATH='/home/rbrown/Documents/Code/MONAI:${PYTHONPATH}' \
 		-a 'cdMONAI="cd /home/rbrown/Documents/Code/MONAI"'

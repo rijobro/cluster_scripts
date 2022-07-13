@@ -17,7 +17,7 @@ print_usage()
 	echo '-h, --help          : Print this help.'
 	echo
 	echo '--docker_push       : Push the created image to dockerhub.'
-	echo '--docker_base       : Base docker image. Default: nvcr.io/nvidia/pytorch:22.03-py3.'
+	echo '--docker_base       : Base docker image. Default: nvcr.io/nvidia/pytorch:22.06-py3.'
 	echo '--docker_im_name    : Name of image to be uploaded to docker hub. Default: rb-monai.'
 	echo
 	echo '--pwd_hash          : Password hash for sudo access. Can be generated with \"openssl passwd -6\".'
@@ -73,7 +73,7 @@ done
 
 # Default variables
 : ${docker_push:=false}
-: ${docker_base:=nvcr.io/nvidia/pytorch:22.03-py3}
+: ${docker_base:=nvcr.io/nvidia/pytorch:22.06-py3}
 : ${docker_im_name:=rb-monai}
 : ${pwd_hash:='$6$hlNDjzLqt8DuY.xq$Ko02k2AapMgOobZCM2bHmw8Fa4GTw9H8N0HJNWdj7yI0L7paM7WTRxP2/xwTFvxOkq/C/tmZZkV11FTu4mhY3/'}
 : ${jupy_pwd_hash:='argon2:$argon2id$v=19$m=10240,t=10,p=8$k9uoAnn3KFfJWO3SNMvYmQ$r8E9SnfzkkM4+SiQpIliJw'}
