@@ -205,8 +205,10 @@ ${exp_cmd}
 $(echo -e ${mail})
 #SBATCH --out ${out}
 
-if test -f "~/.bashrc"; then
-    source ~/.bashrc
+set -e # exit on error
+
+if test -f "${HOME}/.bashrc"; then
+    source ${HOME}/.bashrc
 fi
 
 ${conda_cmd}
