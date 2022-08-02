@@ -54,11 +54,11 @@ print_usage()
     echo '-e, --exp <val>           : Environment variables to export (comma separated).'
     echo '                             Default read from environment variable `JADE_EXPORT`.'
     echo '                             If this environment variable is not present, nothing is exported.'
-    echo '-o, --out <val>           : File to save output. Default: $HOME/job_logs/%j.out.'
+    echo '-o, --out <val>           : File to save output. Default: `$HOME/job_logs/%j.out`.'
     echo '                             %j is jobid. Folder will be created if necessary.'
     echo '-p, --partition <val>     : Partition to use. Default: small.'
     echo '-n, --nodes <val>         : Number of nodes. Default: 1.'
-    echo '-c, --conda <val>         : Conda env to use. Default from JADE_CONDA. If empty,'
+    echo '-c, --conda <val>         : Conda env to use. Default from `JADE_CONDA`. If empty,'
     echo '                             do not activate any environment.'
     echo
 }
