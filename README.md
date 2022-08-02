@@ -30,4 +30,4 @@ I've personalised things to my needs but this may be a useful template for other
 
 ## JADE
 
-The main script here is `submit.sh`. Use the `-h` argument for more options.
+The main script here is `jade_submit.sh`. Use the `-h` argument for more options.
