@@ -19,9 +19,11 @@ print_usage()
 	echo '--gpu <val>               : Number of gpus to submit. Default: 1.'
 	echo '--job-name <val>          : Name of submitted job. Default: rb-monai.'
 	echo '--im-name <val>           : Name of docker image ot be run. Default: rb-monai.'
-	echo '--ssh-port <val>          : make accessible via SSH through given port. Default: 30069.'
+	echo '--ssh-port <val>          : Make accessible via SSH through given port. Default: 30069.'
 	echo '--interactive             : Submit as interactive job.'
 	echo '--extra_cmds              : Extra commands to be appended to startup script (e.g., `cd somewhere && python some_file.py`).'
+        echo '                                Without `--extra_cmds`, the default is `sleep infinity`, allowing you to connect to the job'
+        echo '                                and do whatever you want.'
 	echo
 }
 
