@@ -4,7 +4,7 @@ set -e # exit on error
 
 # cleanup -- delete temporary file
 function cleanup {
-	rm -f ${tmp_file}
+    rm -f ${tmp_file}
 }
 trap cleanup EXIT
 
@@ -26,26 +26,26 @@ conda="${JADE_CONDA}"
 #####################################################################################
 print_usage()
 {
-	# Display Help
-	echo 'SLURM submit script for JADE. Anything after the double hyphen will be executed as command in job.'
+    # Display Help
+    echo 'SLURM submit script for JADE. Anything after the double hyphen will be executed as command in job.'
     echo '  This could be "python script.py", for example.'
     echo
     echo 'Brief syntax:'
     echo 'submit.sh [OPTIONS(0)...] [ : [OPTIONS(N)...]] -- <cmd>'
     echo
-	echo 'Full syntax:'
-	echo 'Syntax: submit.sh [-h|--help] [-m|--mail]'
+    echo 'Full syntax:'
+    echo 'Syntax: submit.sh [-h|--help] [-m|--mail]'
     echo '                  [-p|--dir <val>] [-t|--time <val>]'
-	echo '                  [-g|--gpu <val>] [-n,--cpu <val>]'
+    echo '                  [-g|--gpu <val>] [-n,--cpu <val>]'
     echo '                  [-J|--name <val>] [-e|--exp <val>]'
     echo '                  [-o|--out <val>] [-p|--partition <val>]'
     echo '                  [-n|--nodes <val>] [-c|--conda] -- <cmd>'
-	echo
-	echo 'options without args:'
-	echo '-h, --help                : Print this help.'
+    echo
+    echo 'options without args:'
+    echo '-h, --help                : Print this help.'
     echo '-m, --mail                : Send status emails. Will read email address from environment'
     echo '                             variable `JADE_EMAIL`. If missing, an error will be raised.'
-	echo
+    echo
     echo '-d, --dir <val>           : Directory to run from. Default: pwd.'
     echo '-t, --time <val>          : Time limit. Default: 6h.'
     echo '-g, --gpu <val>           : Num GPUs. Default: 1.'
@@ -60,7 +60,7 @@ print_usage()
     echo '-n, --nodes <val>         : Number of nodes. Default: 1.'
     echo '-c, --conda <val>         : Conda env to use. Default from JADE_CONDA. If empty,'
     echo '                             do not activate any environment.'
-	echo
+    echo
 }
 
 #####################################################################################
@@ -69,7 +69,7 @@ print_usage()
 
 while [[ $# -gt 0 ]]
 do
-	key="$1"
+    key="$1"
     shift
     if [ "$key" == "--" ]; then
         if [ "$#" -gt 0 ]; then
@@ -77,60 +77,60 @@ do
         fi
         break
     fi
-	case $key in
-		-h|--help)
-			print_usage
-			exit 0
-		;;
-		-d|--dir)
+    case $key in
+        -h|--help)
+            print_usage
+            exit 0
+        ;;
+        -d|--dir)
             run_dir=$1
             shift
-		;;
+        ;;
         -t|--time)
             time_limit=$1
             shift
-		;;
+        ;;
         -g|--gpu)
             gpu=$1
             shift
-		;;
+        ;;
         -n|--cpu)
             cpu=$1
             shift
-		;;
+        ;;
         -J|--name)
             job_name=$1
             shift
-		;;
+        ;;
         -m|--mail)
             use_mail=true
-		;;
+        ;;
         -e|--exp)
             exp="${1}"
             shift
-		;;
+        ;;
         -o|--out)
             out=$1
             shift
-		;;
+        ;;
         -p|--partition)
             partition=$1
             shift
-		;;
+        ;;
         -n|--nodes)
             nodes=$1
             shift
-		;;
+        ;;
         -c|--conda)
             conda=$1
             shift
-		;;
-		*)
-			echo -e "\n\nUnknown argument: $key\n\n"
-			print_usage
-			exit 1
-		;;
-	esac
+        ;;
+        *)
+            echo -e "\n\nUnknown argument: $key\n\n"
+            print_usage
+            exit 1
+        ;;
+    esac
 done
 
 #####################################################################################
