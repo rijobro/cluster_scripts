@@ -46,7 +46,7 @@ print_usage()
     echo '-m, --mail                : Send status emails. Will read email address from environment'
     echo '                             variable `JADE_EMAIL`. If missing, an error will be raised.'
     echo
-    echo '-d, --dir <val>           : Directory to run from. Default: pwd.'
+    echo '-d, --dir <val>           : Directory to run from. Default: `pwd`.'
     echo '-t, --time <val>          : Time limit. Default: 6h.'
     echo '-g, --gpu <val>           : Num GPUs. Default: 1.'
     echo '-n, --cpu <val>           : Num CPUs. Default: 10.'
