@@ -228,8 +228,9 @@ EOL
 
 # Submit
 sbatch_out=$(sbatch ${tmp_file})
+sbatch_success=$?
 # If successful, print job info
-if [ "$?" -eq 0 ]; then
+if [ "$sbatch_success" -eq 0 ]; then
     job_id=$(echo "$sbatch_out" | awk '{print $NF}')
     # print info about job
     scontrol show job ${job_id}
@@ -237,7 +238,12 @@ fi
 # Always print sbatch output
 echo ${sbatch_out}
 
-# If following desired
-if [ "$follow" = true ]; then
-    tail -f "${out}"
+# If successful and following desired
+if [ "$sbatch_success" -eq 0 ] && [ "$follow" = true ]; then
+    echo "Waiting for job to start..."
+    log_fname=${out/\%j/${job_id}}
+    while [ ! -f $log_fname ]; do
+        sleep 1
+    done
+    tail -f $log_fname
 fi
