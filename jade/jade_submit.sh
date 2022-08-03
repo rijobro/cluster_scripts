@@ -34,7 +34,7 @@ print_usage()
     echo 'submit.sh [OPTIONS(0)...] [ : [OPTIONS(N)...]] -- <cmd>'
     echo
     echo 'Full syntax:'
-    echo 'Syntax: submit.sh [-h|--help] [-m|--mail]'
+    echo 'Syntax: submit.sh [-h|--help] [-m|--mail] [-f|--follow]'
     echo '                  [-p|--dir <val>] [-t|--time <val>]'
     echo '                  [-g|--gpu <val>] [-n,--cpu <val>]'
     echo '                  [-J|--name <val>] [-e|--exp <val>]'
@@ -45,6 +45,7 @@ print_usage()
     echo '-h, --help                : Print this help.'
     echo '-m, --mail                : Send status emails. Will read email address from environment'
     echo '                             variable `JADE_EMAIL`. If missing, an error will be raised.'
+    echo '-f, --follow              : After submitting, follow job with `tail -f`.'
     echo
     echo '-d, --dir <val>           : Directory to run from. Default: `pwd`.'
     echo '-t, --time <val>          : Time limit. Default: 6h.'
@@ -104,6 +105,9 @@ do
         ;;
         -m|--mail)
             use_mail=true
+        ;;
+        -f|--follow)
+            follow=true
         ;;
         -e|--exp)
             exp="${1}"
@@ -232,3 +236,8 @@ if [ "$?" -eq 0 ]; then
 fi
 # Always print sbatch output
 echo ${sbatch_out}
+
+# If following desired
+if [ "$follow" = true ]; then
+    tail -f "${out}"
+fi
