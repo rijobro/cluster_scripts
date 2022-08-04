@@ -51,7 +51,7 @@ print_usage()
     echo '-t, --time <val>          : Time limit. Default: 6h.'
     echo '-g, --gpu <val>           : Num GPUs. Default: 1.'
     echo '-n, --cpu <val>           : Num CPUs. Default: 10.'
-    echo '-J, --name <val>          : Job name. Default: `<cmd>`.'
+    echo '-J, --name <val>          : Job name. Default: `<cmd>` (with `python ` stripped if present).'
     echo '-e, --exp <val>           : Environment variables to export (comma separated).'
     echo '                             Default read from environment variable `JADE_EXPORT`.'
     echo '                             If this environment variable is not present, nothing is exported.'
@@ -148,7 +148,9 @@ if [ -z "${cmd}" ]; then
 fi
 
 # Post-processing defaults.
-: ${job_name:=\"${cmd}\"}
+log_fname=${out/\%j/${job_id}}
+# default job name is cmd, but strip "python " if present.
+: ${job_name:=\"${cmd/python /}\"}
 
 # If email desired
 if [ "$use_mail" = true ]; then
