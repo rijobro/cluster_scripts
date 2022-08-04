@@ -87,14 +87,14 @@ fi
 cd "$(dirname "$0")"
 
 # Delete previously running job
-runai delete job $job_name > /dev/null 2>&1
+runai delete job $job_name > /dev/null 2>&1 || true
 
 # Create startup script with any additional commands
 # The file is created with a timestamp so that concurrent
 # jobs can each potentially have different arguments
 mkdir -p ~/tmp
 startup_file=monai_startup_$(date +"%Y-%m-%d_%H-%M-%S").sh
-cp ~/Documents/Code/dgxscripts/runai_startup.sh ~/tmp/$startup_file
+cp runai_startup.sh ~/tmp/$startup_file
 if [[ -v extra_cmds ]]; then
 	echo -e $extra_cmds >> ~/tmp/$startup_file
 else
