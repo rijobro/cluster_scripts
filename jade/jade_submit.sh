@@ -149,8 +149,11 @@ fi
 
 # Post-processing defaults.
 log_fname=${out/\%j/${job_id}}
-# default job name is cmd, but strip "python " if present.
-: ${job_name:=\"${cmd/python /}\"}
+# default job name is cmd, with certain parts stripped.
+default_job_name=$cmd
+default_job_name=$(echo $default_job_name | sed -E -e 's/.*python//')
+default_job_name=$(echo $default_job_name | sed -E -e 's/\.py//')
+: ${job_name:=$default_job_name}
 
 # If email desired
 if [ "$use_mail" = true ]; then
