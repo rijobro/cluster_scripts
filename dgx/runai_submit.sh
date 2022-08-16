@@ -12,18 +12,20 @@ print_usage()
 	echo
 	echo 'Syntax: runai_submit.sh [-h|--help] [-g|--gpu <num>] [--job-name <name>] [--im-name <name>]'
 	echo '                        [--ssh-port <num>] [--interactive] [--exta_cmds <cmds>]'
+	echo '                        [-n|--node <node>]'
 	echo
 	echo 'options:'
 	echo '-h, --help                : Print this help.'
 	echo
-	echo '--gpu <val>               : Number of gpus to submit. Default: 1.'
-	echo '--job-name <val>          : Name of submitted job. Default: rb-monai.'
-	echo '--im-name <val>           : Name of docker image ot be run. Default: rb-monai.'
-	echo '--ssh-port <val>          : Make accessible via SSH through given port. Default: 30069.'
-	echo '--interactive             : Submit as interactive job.'
-	echo '--extra_cmds              : Extra commands to be appended to startup script (e.g., `cd somewhere && python some_file.py`).'
+	echo '-g, --gpu <val>           : Number of gpus to submit. Default: 1.'
+	echo '-j, --job-name <val>      : Name of submitted job. Default: rb-monai.'
+	echo '-i, --im-name <val>       : Name of docker image ot be run. Default: rb-monai.'
+	echo '-p, --ssh-port <val>      : Make accessible via SSH through given port. Default: 30069.'
+	echo '-I, --interactive         : Submit as interactive job.'
+	echo '-e, --extra_cmds          : Extra commands to be appended to startup script (e.g., `cd somewhere && python some_file.py`).'
         echo '                                Without `--extra_cmds`, the default is `sleep infinity`, allowing you to connect to the job'
         echo '                                and do whatever you want.'
+	echo '-n, --node                : Node to run on. Default is any.'
 	echo
 }
 
@@ -35,6 +37,7 @@ print_usage()
 gpu=1
 job_name=rb-monai
 im_name=rb-monai
+ssh_port=30069
 
 while [[ $# -gt 0 ]]
 do
@@ -48,23 +51,27 @@ do
 			gpu=$2
 			shift
 		;;
-		--job-name)
+		-j|--job-name)
 			job_name=$2
 			shift
 		;;
-		--im-name)
+		-i|--im-name)
 			im_name=$2
 			shift
 		;;
-		--ssh-port)
+		-p|--ssh-port)
 			ssh_port=$2
 			shift
 		;;
-		--interactive)
-			interactive=true
+		-I|--interactive)
+			interactive="--interactive"
 		;;
-		--extra_cmds)
+		-e|--extra_cmds)
 			extra_cmds=$2
+			shift
+		;;
+		-n|--node)
+			node="--node-type $2"
 			shift
 		;;
 		*)
@@ -75,13 +82,6 @@ do
 	esac
 	shift
 done
-
-# Default variables
-: ${ssh_port:=30069}
-
-if [ "$interactive" = true ]; then
-	interactive="--interactive"
-fi
 
 # Move to current directory
 cd "$(dirname "$0")"
@@ -101,9 +101,8 @@ else
 	echo "sleep infinity" >> ~/tmp/$startup_file
 fi
 
-
 # Submit job
-runai submit $job_name $interactive \
+runai submit $job_name $interactive $node \
     --port ${ssh_port}:2222 --service-type=nodeport \
 	-i rijobro/$im_name:latest \
 	-g $gpu \
@@ -114,7 +113,6 @@ runai submit $job_name $interactive \
 	-v ~/Documents/Scratch:/home/rbrown/Documents/Scratch \
 	-v ~/tmp:/home/rbrown/tmp \
 	--backoff-limit 0 \
-	--run-as-user \
 	--command -- sh /home/rbrown/tmp/$startup_file \
 		--ssh_server --jupy \
 		-e MONAI_DATA_DIRECTORY=/home/rbrown/Documents/Data/MONAI \
