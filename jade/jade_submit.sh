@@ -19,7 +19,6 @@ exp="${JADE_EXPORT}"
 out="${HOME}/job_logs/%j.out"
 partition=small
 nodes=1
-conda="${JADE_CONDA}"
 
 #####################################################################################
 # Usage
@@ -31,15 +30,15 @@ print_usage()
     echo '  This could be "python script.py", for example.'
     echo
     echo 'Brief syntax:'
-    echo 'submit.sh [OPTIONS(0)...] [ : [OPTIONS(N)...]] -- <cmd>'
+    echo 'jade_submit.sh [OPTIONS(0)...] [ : [OPTIONS(N)...]] -- <cmd>'
     echo
     echo 'Full syntax:'
-    echo 'Syntax: submit.sh [-h|--help] [-m|--mail] [-f|--follow]'
+    echo 'Syntax: jade_submit.sh [-h|--help] [-m|--mail] [-f|--follow]'
     echo '                  [-p|--dir <val>] [-t|--time <val>]'
     echo '                  [-g|--gpu <val>] [-n,--cpu <val>]'
     echo '                  [-J|--name <val>] [-e|--exp <val>]'
     echo '                  [-o|--out <val>] [-p|--partition <val>]'
-    echo '                  [-n|--nodes <val>] [-c|--conda] -- <cmd>'
+    echo '                  [-n|--nodes <val>]'
     echo
     echo 'options without args:'
     echo '-h, --help                : Print this help.'
@@ -59,8 +58,6 @@ print_usage()
     echo '                             %j is jobid. Folder will be created if necessary.'
     echo '-p, --partition <val>     : Partition to use. Default: small.'
     echo '-n, --nodes <val>         : Number of nodes. Default: 1.'
-    echo '-c, --conda <val>         : Conda env to use. Default from `JADE_CONDA`. If empty,'
-    echo '                             do not activate any environment.'
     echo
 }
 
@@ -125,10 +122,6 @@ do
             nodes=$1
             shift
         ;;
-        -c|--conda)
-            conda=$1
-            shift
-        ;;
         *)
             echo -e "\n\nUnknown argument: $key\n\n"
             print_usage
@@ -153,7 +146,7 @@ log_fname=${out/\%j/${job_id}}
 default_job_name=$cmd
 default_job_name=$(echo $default_job_name | sed -E -e 's/.*python//')
 default_job_name=$(echo $default_job_name | sed -E -e 's/\.py//')
-: ${job_name:=$default_job_name}
+: ${job_name:=\"$default_job_name\"}
 
 # If email desired
 if [ "$use_mail" = true ]; then
@@ -170,10 +163,6 @@ if [ "${exp}" != "" ]; then
     exp_cmd="#SBATCH --export=${exp}"
 fi
 
-if [ "${conda}" != "" ]; then
-    conda_cmd="conda activate ${conda}"
-fi
-
 # Make sure output folder exists
 mkdir -p $(dirname "$out")
 
@@ -187,7 +176,6 @@ echo "Job name: ${job_name}"
 echo "Log file: ${out}"
 echo "Partition: ${partition}"
 echo "Exports: ${exp}"
-echo "Conda env: ${conda}"
 echo "Email: ${email_to_use}"
 echo
 echo "Command: ${cmd}"
@@ -215,12 +203,6 @@ $(echo -e ${mail})
 #SBATCH --out ${out}
 
 set -e # exit on error
-
-if test -f "${HOME}/.bashrc"; then
-    source ${HOME}/.bashrc
-fi
-
-${conda_cmd}
 
 echo running ${cmd}
 
