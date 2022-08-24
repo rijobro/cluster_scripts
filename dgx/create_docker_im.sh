@@ -2,6 +2,15 @@
 
 set -e # stop on error
 
+#####################################################################################
+# Default variables
+#####################################################################################
+docker_push=false
+docker_base="nvcr.io/nvidia/pytorch:22.07-py3"
+docker_im_name="${RUNAI_NAME}"
+pwd_hash="${RUNAI_SSH_HASH}"
+jupy_pwd_hash="${RUNAI_JUPY_HASH}"
+
 ################################################################################
 # Usage
 ################################################################################
@@ -10,57 +19,65 @@ print_usage()
 	# Display Help
 	echo 'Build docker image and upload it to docker hub.'
 	echo
-	echo 'Syntax: create_docker_im.sh [-h|--help] [--docker_push] [--docker_base im] [--docker_im_name name]'
-	echo '                            [--pwd_hash pwd_hash] [--jupy_pwd_hash] [--docker_args args]'
+	echo 'Brief syntax:'
+    echo "${0##*/} [OPTIONS(0)...] [ : [OPTIONS(N)...]]"
+    echo
+    echo 'Full syntax:'
+    echo "${0##*/} [-h|--help] [-d|--docker_push]"
+	echo '                  [-b|--docker_base <val>] [-i|--docker_im_name]'
+	echo '                  [-p|--pwd_hash <val] [-j|--jupy_pwd_hash <val>]'
+	echo '                  [-a|--docker_args <val>]'
 	echo
 	echo 'options:'
-	echo '-h, --help          : Print this help.'
+	echo '-h, --help              : Print this help.'
 	echo
-	echo '--docker_push       : Push the created image to dockerhub.'
-	echo '--docker_base       : Base docker image. Default: nvcr.io/nvidia/pytorch:22.06-py3.'
-	echo '--docker_im_name    : Name of image to be uploaded to docker hub. Default: rb-monai.'
+	echo '-d, --docker_push       : Push the created image to dockerhub.'
+	echo "-b, --docker_base       : Base docker image. Default: ${docker_base}."
+	echo '-i, --docker_im_name    : Name of image to be uploaded to docker hub. Default from'
+	echo '                             environment variable `RUNAI_NAME`.'
 	echo
-	echo '--pwd_hash          : Password hash for sudo access. Can be generated with \"openssl passwd -6\".'
-	echo '                      Default: $6$hlNDjzLqt8DuY.xq$Ko02k2AapMgOobZCM2bHmw8Fa4GTw9H8N0HJNWdj7yI0L7paM7WTRxP2/xwTFvxOkq/C/tmZZkV11FTu4mhY3/.'
-	echo '--jupy_pwd_hash     : Jupyter notebook password hash. Can be generated with python -c "from notebook.auth import passwd; print(passwd())"'
-	echo '                      Default: argon2:$argon2id$v=19$m=10240,t=10,p=8$k9uoAnn3KFfJWO3SNMvYmQ$r8E9SnfzkkM4+SiQpIliJw'
+	echo '-p, --pwd_hash          : Password hash for sudo access. Can be generated with \"openssl passwd -6\".'
+	echo '                             Default from environment variable `RUNAI_SSH_HASH`.'
+	echo '-j, --jupy_pwd_hash     : Jupyter notebook password hash. Default from environment variable `RUNAI_JUPY_HASH`.'
+	echo '                             Can be generated with:'
+	echo '                             `python -c "from notebook.auth import passwd; print(passwd())"`.'
 	echo
-	echo '--docker_args       : Pass the any extra arguments onto the docker build (e.g., `--docker_args --no-cache`)'
+	echo '-a, --docker_args       : Pass the any extra arguments onto the docker build (e.g., `--docker_args --no-cache`)'
 	echo
 }
 
 ################################################################################
-# parse input arguments
+# Parse input arguments
 ################################################################################
-while [[ $# -gt 0 ]]
-do
+while [[ $# -gt 0 ]]; do
 	key="$1"
+	shift
 	case $key in
 		-h|--help)
 			print_usage
 			exit 0
 		;;
-		--docker_push)
+		-d|--docker_push)
 			docker_push=true
 		;;
-		--docker_base)
-			docker_base="$2"
+		-b|--docker_base)
+			docker_base="$1"
 			shift
 		;;
-		--docker_im_name)
-			docker_im_name="$2"
+		-i|--docker_im_name)
+			docker_im_name="$1"
 			shift
 		;;
-		--pwd_hash)
-			pwd_hash="$2"
+		-p|--pwd_hash)
+			pwd_hash="$1"
 			shift
 		;;
-		--jupy_pwd_hash)
-			jupy_pwd_hash="$2"
+		-j|--jupy_pwd_hash)
+			jupy_pwd_hash="$1"
 			shift
 		;;
-		--docker_args)
-			extra_docker_args="$2"
+		-a|--docker_args)
+			extra_docker_args="$1"
 			shift
 		;;
 		*)
@@ -68,15 +85,7 @@ do
 			exit 1
 		;;
 	esac
-	shift
 done
-
-# Default variables
-: ${docker_push:=false}
-: ${docker_base:=nvcr.io/nvidia/pytorch:22.06-py3}
-: ${docker_im_name:=rb-monai}
-: ${pwd_hash:='$6$hlNDjzLqt8DuY.xq$Ko02k2AapMgOobZCM2bHmw8Fa4GTw9H8N0HJNWdj7yI0L7paM7WTRxP2/xwTFvxOkq/C/tmZZkV11FTu4mhY3/'}
-: ${jupy_pwd_hash:='argon2:$argon2id$v=19$m=10240,t=10,p=8$k9uoAnn3KFfJWO3SNMvYmQ$r8E9SnfzkkM4+SiQpIliJw'}
 
 # Fixed variables
 uname=$(whoami)
@@ -88,14 +97,12 @@ auth_keys_path=$HOME/.ssh/authorized_keys
 id_rsa_path=$HOME/.ssh/id_rsa.pub
 docker_uname=$(docker info 2> /dev/null | sed '/Username:/!d;s/.* //')
 
-echo
+# Print vals
 echo
 echo "Base docker image: ${docker_base}"
 echo "Generated image name: ${docker_im_name}"
 echo "Docker username: ${docker_uname}"
 echo
-echo
-
 
 # cleanup
 function cleanup {
@@ -110,6 +117,9 @@ cd "$(dirname "$0")"
 cat $auth_keys_path > authorized_keys
 cp "${id_rsa_path}" .
 
+#####################################################################################
+# Build
+#####################################################################################
 docker build -t $docker_im_name . \
 	-f Dockerfile \
 	--build-arg DOCKER_BASE=$docker_base \
@@ -123,7 +133,9 @@ docker build -t $docker_im_name . \
 	--network=host \
 	${extra_docker_args}
 
+#####################################################################################
 # Push image
+#####################################################################################
 if [ $docker_push = true ]; then
 	docker tag $docker_im_name ${docker_uname}/${docker_im_name}
 	docker push ${docker_uname}/${docker_im_name}:latest

@@ -103,7 +103,10 @@ RUN python -m pip install --upgrade -r https://raw.githubusercontent.com/Project
 RUN python -m pip install --upgrade -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/docs/requirements.txt
 RUN python -m pip install --upgrade -r https://raw.githubusercontent.com/Project-MONAI/tutorials/master/requirements.txt
 RUN python -m pip install --upgrade ipywidgets torchsummary scikit-learn jupyterthemes
-RUN conda install -c conda-forge moviepy tensorboardx
+RUN conda install -c conda-forge tensorboardx
+# moviepy has to be via pip: conda 1.0.3 gives error: name 'func' is not defined
+RUN python -m pip install moviepy nvitop
+
 USER ${UNAME}
 
 # Set up jupyter notebook, w/ blue theme

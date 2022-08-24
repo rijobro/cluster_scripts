@@ -1,123 +1,94 @@
 #!/bin/bash
 
+set -e # exit on error
+
+#####################################################################################
+# Default variables
+#####################################################################################
+run_dir=$(pwd)
+cmd="sleep infinity"
 
 ################################################################################
 # Usage
 ################################################################################
 print_usage()
 {
-	# Display Help
-	echo 'Script to be run at start of docker job.'
+	echo 'Script to be run at start of runai job.'
 	echo
-	echo 'Syntax: runai_startup.sh [-h|--help] [--jupy] [--ssh_server]'
-	echo '                         [--compile_monai] [--python_path val]'
-	echo '                         [-e|--env name=val]'
+	echo 'Brief syntax:'
+    echo "${0##*/} [OPTIONS(0)...] [ : [OPTIONS(N)...]] [-- <cmd>]"
 	echo
-	echo 'options:'
+    echo 'Full syntax:'
+	echo "${0##*/} [-h|--help] [-d|--dir <val>] [-- <cmd>]"
+	echo
+	echo 'options without args:'
 	echo '-h, --help                : Print this help.'
+    echo
+    echo 'options with args:'
+	echo '-d, --dir <val>           : Directory to run from. Default: `pwd`.'
 	echo
-	echo '--compile_monai           : Compile MONAI code.'
-	echo '--jupy                    : Start a jupyter notebook'
-	echo '--ssh_server              : Start an SSH server.'
-	echo
-	echo '-e, --env <name=val>      : Environmental variable, given as "NAME=VAL".'
-	echo '                            Can be used multiple times.'
-	echo '-a, --alias <name=val>    : Alias, given as "NAME=VAL".'
-	echo '                            Can be used multiple times.'
-	echo
+	echo 'NB: if `-- <cmd>` not given, `sleep infinity` is used.'
 }
 
 ################################################################################
-# parse input arguments
+# Parse input arguments
 ################################################################################
-
-while [[ $# -gt 0 ]]
-do
+while [[ $# -gt 0 ]]; do
 	key="$1"
+    shift
+    if [ "$key" == "--" ]; then
+        if [ "$#" -gt 0 ]; then
+            cmd="$*"
+        fi
+        break
+    fi
 	case $key in
 		-h|--help)
 			print_usage
 			exit 0
 		;;
-		--compile_monai)
-			compile_monai=true
-		;;
-		--jupy)
-			jupy=true
-		;;
-		--ssh_server)
-			ssh_server=true
-		;;
-		-e|--env)
-			if [[ -z "${envs}" ]]; then envs=(); fi
-			envs+=($2)
-			shift
-		;;
-		-a|--alias)
-			if [[ -z "${aliases}" ]]; then aliases=(); fi
-			aliases+=("$2")
-			shift
-		;;
+		-d|--dir)
+            run_dir=$1
+            shift
+        ;;
 		*)
 			echo -e "\n\nUnknown argument: $key\n\n"
 			print_usage
 			exit 1
 		;;
 	esac
-	shift
 done
 
-# Default variables
-: ${jupy:=false}
-: ${ssh_server:=false}
-: ${compile_monai:=false}
-
+# Print vals
 echo
-echo
-echo "Start jupyter session: ${jupy}"
-echo "SSH server: ${ssh_server}"
-echo "Compile MONAI: ${compile_monai}"
-echo
-echo "Environmental variables:"
-for env in "${envs[@]}"; do
-	echo -e "\t${env}"
-done
-echo "Aliases:"
-for alias in "${aliases[@]}"; do
-	echo -e "\t${alias}"
-done
+echo "Path: ${run_dir}"
+echo "Command: ${cmd}"
 echo
 
-set -e # exit on error
-set -x # print command before doing it
+#####################################################################################
+# Correct "~" (runai bug), source bashrc, start jupyter and sshd
+#####################################################################################
 
 export HOME=/home/$(whoami)
 source ~/.bashrc
 
-# Add any environmental variables
-for env in "${envs[@]}"; do
-	export ${env}
-	printf "export ${env}\n" >> ~/.bashrc
-done
+# SSH server and jupyter notebook
+nohup /usr/sbin/sshd -D -f ~/.ssh/sshd_config -E ~/.ssh/sshd.log &
+nohup jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir="~" > ~/.jupyter_notebook.log 2>&1 &
 
-# Add any aliases
-for alias in "${aliases[@]}"; do
-	alias "${alias}"
-	printf "alias ${alias}\n" >> ~/.bashrc
-done
+#####################################################################################
+# CD to running directory and execute command
+#####################################################################################
 
-# SSH server
-if [ "$ssh_server" = true ]; then
-	nohup /usr/sbin/sshd -D -f ~/.ssh/sshd_config -E ~/.ssh/sshd.log &
-fi
+cd $run_dir
 
-# Jupyter notebook
-if [ "$jupy" = true ]; then
-	nohup jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir="~" > ~/.jupyter_notebook.log 2>&1 &
-fi
+echo Desired running dir: ${run_dir}
+echo Current dir: $(pwd)
 
-# Compile MONAI cuda code
-if [ "$compile_monai" = true ]; then
-	cd ~/Documents/Code/MONAI
-	BUILD_MONAI=1 python setup.py develop
-fi
+# the trap code is designed to send a stop (SIGTERM) signal to child processes,
+# thus allowing python code to catch the signal and execute a callback
+trap 'trap " " SIGTERM; kill 0; wait' SIGTERM
+
+echo running ${cmd}
+${cmd} &
+wait $!

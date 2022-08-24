@@ -25,20 +25,19 @@ nodes=1
 #####################################################################################
 print_usage()
 {
-    # Display Help
     echo 'SLURM submit script for JADE. Anything after the double hyphen will be executed as command in job.'
     echo '  This could be "python script.py", for example.'
     echo
     echo 'Brief syntax:'
-    echo 'jade_submit.sh [OPTIONS(0)...] [ : [OPTIONS(N)...]] -- <cmd>'
+    echo "${0##*/} [OPTIONS(0)...] [ : [OPTIONS(N)...]] -- <cmd>"
     echo
     echo 'Full syntax:'
-    echo 'Syntax: jade_submit.sh [-h|--help] [-m|--mail] [-f|--follow]'
-    echo '                  [-p|--dir <val>] [-t|--time <val>]'
+    echo "${0##*/} [-h|--help] [-m|--mail] [-f|--follow]"
+    echo '                  [-d|--dir <val>] [-t|--time <val>]'
     echo '                  [-g|--gpu <val>] [-n,--cpu <val>]'
     echo '                  [-J|--name <val>] [-e|--exp <val>]'
     echo '                  [-o|--out <val>] [-p|--partition <val>]'
-    echo '                  [-n|--nodes <val>]'
+    echo '                  [-n|--nodes <val>] -- <cmd>'
     echo
     echo 'options without args:'
     echo '-h, --help                : Print this help.'
@@ -46,6 +45,7 @@ print_usage()
     echo '                             variable `JADE_EMAIL`. If missing, an error will be raised.'
     echo '-f, --follow              : After submitting, follow job with `tail -f`.'
     echo
+    echo 'options with args:'
     echo '-d, --dir <val>           : Directory to run from. Default: `pwd`.'
     echo '-t, --time <val>          : Time limit. Default: 6h.'
     echo '-g, --gpu <val>           : Num GPUs. Default: 1.'
@@ -64,9 +64,7 @@ print_usage()
 #####################################################################################
 # Parse input arguments
 #####################################################################################
-
-while [[ $# -gt 0 ]]
-do
+while [[ $# -gt 0 ]]; do
     key="$1"
     shift
     if [ "$key" == "--" ]; then
@@ -178,8 +176,8 @@ echo "Partition: ${partition}"
 echo "Exports: ${exp}"
 echo "Email: ${email_to_use}"
 echo
-echo "Command: ${cmd}"
 echo "Path: ${run_dir}"
+echo "Command: ${cmd}"
 echo
 
 #####################################################################################
