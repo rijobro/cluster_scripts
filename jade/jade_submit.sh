@@ -12,13 +12,14 @@ trap cleanup EXIT
 # Default variables (search this file for "Post-processing defaults" to see others)
 #####################################################################################
 run_dir=$(pwd)
-time_limit="06:00:00"
 gpu=1
 cpu=10
 exp="${JADE_EXPORT}"
 out="${HOME}/job_logs/%j.out"
 partition=small
 nodes=1
+default_devel_time_limit="1"
+default_time_limit="6"
 
 #####################################################################################
 # Usage
@@ -47,17 +48,17 @@ print_usage()
     echo
     echo 'options with args:'
     echo '-d, --dir <val>           : Directory to run from. Default: `pwd`.'
-    echo '-t, --time <val>          : Time limit. Default: 6h.'
-    echo '-g, --gpu <val>           : Num GPUs. Default: 1.'
-    echo '-n, --cpu <val>           : Num CPUs. Default: 10.'
+    echo "-t, --time <val>          : Time limit. Default: ${default_devel_time_limit}h if partition is devel, else ${default_time_limit}h."
+    echo "-g, --gpu <val>           : Num GPUs. Default: ${gpu}."
+    echo "-n, --cpu <val>           : Num CPUs. Default: ${cpu}."
     echo '-J, --name <val>          : Job name. Default: `<cmd>` (with `python ` stripped if present).'
     echo '-e, --exp <val>           : Environment variables to export (comma separated).'
     echo '                             Default read from environment variable `JADE_EXPORT`.'
     echo '                             If this environment variable is not present, nothing is exported.'
     echo '-o, --out <val>           : File to save output. Default: `$HOME/job_logs/%j.out`.'
     echo '                             %j is jobid. Folder will be created if necessary.'
-    echo '-p, --partition <val>     : Partition to use. Default: small.'
-    echo '-n, --nodes <val>         : Number of nodes. Default: 1.'
+    echo "-p, --partition <val>     : Partition to use. Default: ${partition}."
+    echo "-n, --nodes <val>         : Number of nodes. Default: ${nodes}."
     echo
 }
 
@@ -138,7 +139,16 @@ if [ -z "${cmd}" ]; then
     exit 1
 fi
 
-# Post-processing defaults.
+# default time limit
+if [ "${time_limit}" == "" ]; then
+    echo here1
+    if [ "$partition" == "devel" ]; then
+        time_limit="0${default_devel_time_limit}:00:00"
+    else
+        time_limit="0${default_time_limit}:00:00"
+    fi
+fi
+
 log_fname=${out/\%j/${job_id}}
 # default job name is cmd, with certain parts stripped.
 default_job_name=$cmd
@@ -174,7 +184,7 @@ echo "Job name: ${job_name}"
 echo "Log file: ${out}"
 echo "Partition: ${partition}"
 echo "Exports: ${exp}"
-echo "Email: ${email_to_use}"
+echo "Email: ${email_to_use:-No}"
 echo
 echo "Path: ${run_dir}"
 echo "Command: ${cmd}"
@@ -202,9 +212,14 @@ $(echo -e ${mail})
 
 set -e # exit on error
 
+# the trap code is designed to send a stop (SIGTERM) signal to child processes,
+# thus allowing python code to catch the signal and execute a callback
+trap 'trap " " SIGTERM; kill 0; wait' SIGTERM
+
 echo running ${cmd}
 
-${cmd}
+${cmd} &
+wait \$!
 EOL
 
 #####################################################################################
