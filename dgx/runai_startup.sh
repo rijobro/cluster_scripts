@@ -8,9 +8,9 @@ set -e # exit on error
 run_dir=$(pwd)
 cmd="sleep infinity"
 
-################################################################################
+#####################################################################################
 # Usage
-################################################################################
+#####################################################################################
 print_usage()
 {
 	echo 'Script to be run at start of runai job.'
@@ -26,13 +26,15 @@ print_usage()
     echo
     echo 'options with args:'
 	echo '-d, --dir <val>           : Directory to run from. Default: `pwd`.'
+	echo '-e, --env <name=val>      : Environmental variable, given as "NAME=VAL".'
+	echo '                            Can be used multiple times.'
 	echo
 	echo 'NB: if `-- <cmd>` not given, `sleep infinity` is used.'
 }
 
-################################################################################
+#####################################################################################
 # Parse input arguments
-################################################################################
+#####################################################################################
 while [[ $# -gt 0 ]]; do
 	key="$1"
     shift
@@ -51,6 +53,11 @@ while [[ $# -gt 0 ]]; do
             run_dir=$1
             shift
         ;;
+		-e|--env)
+			if [[ -z "${envs}" ]]; then envs=(); fi
+			envs+=($1)
+			shift
+		;;
 		*)
 			echo -e "\n\nUnknown argument: $key\n\n"
 			print_usage
@@ -63,28 +70,38 @@ done
 echo
 echo "Path: ${run_dir}"
 echo "Command: ${cmd}"
+echo "SSH address: $(hostname -i)"
+echo
+echo "Environmental variables:"
+for env in "${envs[@]}"; do
+	echo -e "\t${env}"
+done
 echo
 
 #####################################################################################
-# Correct "~" (runai bug), source bashrc, start jupyter and sshd
+# Correct "~" (runai bug), source bashrc, add env vars, cd to run dir
 #####################################################################################
 
 export HOME=/home/$(whoami)
 source ~/.bashrc
 
-# SSH server and jupyter notebook
-nohup /usr/sbin/sshd -D -f ~/.ssh/sshd_config -E ~/.ssh/sshd.log &
-nohup jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir="~" > ~/.jupyter_notebook.log 2>&1 &
-
-#####################################################################################
-# CD to running directory and execute command
-#####################################################################################
+# Add any environmental variables
+for env in "${envs[@]}"; do
+	export ${env}
+	printf "export ${env}\n" >> ~/.bashrc
+done
 
 cd $run_dir
 
-echo Desired running dir: ${run_dir}
-echo Current dir: $(pwd)
+#####################################################################################
+# Start jupyter and sshd
+#####################################################################################
+nohup /usr/sbin/sshd -D -f ~/.ssh/sshd_config -E ~/.ssh/sshd.log &
+nohup jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir=".." > ~/.jupyter_notebook.log 2>&1 &
 
+#####################################################################################
+# Execute command
+#####################################################################################
 # the trap code is designed to send a stop (SIGTERM) signal to child processes,
 # thus allowing python code to catch the signal and execute a callback
 trap 'trap " " SIGTERM; kill 0; wait' SIGTERM

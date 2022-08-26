@@ -20,6 +20,7 @@ partition=small
 nodes=1
 default_devel_time_limit="1"
 default_time_limit="6"
+check=True
 
 #####################################################################################
 # Usage
@@ -59,6 +60,8 @@ print_usage()
     echo '                             %j is jobid. Folder will be created if necessary.'
     echo "-p, --partition <val>     : Partition to use. Default: ${partition}."
     echo "-n, --nodes <val>         : Number of nodes. Default: ${nodes}."
+	echo '-c, --check <val>        : If true, and cmd is given, get filename and check it exists.'
+	echo "                             deleted? Default: ${check}."
     echo
 }
 
@@ -119,6 +122,10 @@ while [[ $# -gt 0 ]]; do
         ;;
         -n|--nodes)
             nodes=$1
+            shift
+        ;;
+        -c|--check)
+            check=$1
             shift
         ;;
         *)
@@ -185,10 +192,29 @@ echo "Log file: ${out}"
 echo "Partition: ${partition}"
 echo "Exports: ${exp}"
 echo "Email: ${email_to_use:-No}"
+echo "Check?: ${check}"
 echo
 echo "Path: ${run_dir}"
 echo "Command: ${cmd}"
 echo
+
+#####################################################################################
+# Check file exists in path
+#####################################################################################
+if [ "${check}" == True ]; then
+	# loop over each word in cmd
+	for i in ${cmd}; do
+		# if one contains .py, check file exists
+		if [[ $i == *".py" ]]; then
+			path="${run_dir}/$i"
+			if [ ! -f "$path" ]; then
+				echo "$path: does not exist. Use --check False if this is expected."
+				exit 1
+			fi
+			break
+		fi
+	done
+fi
 
 #####################################################################################
 # Create temporary submit file
