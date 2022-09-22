@@ -9,9 +9,11 @@ run_dir=$(pwd)
 default_cmd="sleep infinity"
 gpu=1
 im_name="${RUNAI_IM}"
+default_job_name="${RUNAI_NAME}"
 env_vars="${RUNAI_ENVS}"
 overwrite=False
 check=True
+follow=True
 
 #####################################################################################
 # Usage
@@ -24,7 +26,7 @@ print_usage()
     echo "${0##*/} [OPTIONS(0)...] [ : [OPTIONS(N)...]] [-- <cmd>]"
     echo
     echo 'Full syntax:'
-    echo "${0##*/} [-h|--help] [-f|--follow] [-d|--dir <val>]"
+    echo "${0##*/} [-h|--help] [-f|--follow <val>] [-d|--dir <val>]"
 	echo '                  [-g|--gpu <val>] [-n|--node <val>]'
 	echo '                  [-j|--job-name <val>] [-i|--im-name <val>]'
 	echo '                  [-e|--env <val>] [-o|--overwrite <val>]'
@@ -32,7 +34,6 @@ print_usage()
 	echo
     echo 'options without args:'
     echo '-h, --help                : Print this help.'
-	echo '-f, --follow              : After submitting, follow job.'
 	echo
     echo 'options with args:'
 	echo '-d, --dir <val>           : Directory to run from. Default: `pwd`.'
@@ -40,13 +41,15 @@ print_usage()
 	echo '-n, --node <val>          : Node to run on. Default is any.'
 	echo '-j, --job-name <val>      : Name of submitted job. If not given, name'
 	echo '                             will be taken from the command (with `python `'
-	echo '                             removed). default command used, name taken from '
-	echo '                             image name.'
+	echo '                             removed). If default command has been used, name'
+	echo '                             is taken from environment variable RUNAI_NAME.'
+	echo '                             If RUNAI_NAME missing, error.'
 	echo '-i, --im-name <val>       : Name of docker image to be run. Default from'
 	echo '                             environment variable `RUNAI_IM`.'
 	echo '-e, --env <val>           : Comma-separated list of variables to copy'
 	echo '                             from dgx to job. Default from'
 	echo '                             environment variable `RUNAI_ENVS`.'
+	echo "-f, --follow <val>        : After submitting, follow job. Default: ${follow}."
 	echo '-o, --overwrite <val>     : If job with same name exists, should it be'
 	echo "                             deleted? Default: ${overwrite}."
 	echo '-c, --check <val>        : If true, and cmd is given, get filename and check it exists.'
@@ -73,7 +76,8 @@ while [[ $# -gt 0 ]]; do
 			exit 0
 		;;
 		-f|--follow)
-            follow=true
+			follow="$1"
+			shift
         ;;
         -d|--dir)
             run_dir=$1
@@ -123,9 +127,7 @@ done
 
 # if job name not given, figure one out
 if [ "${job_name}" == "" ]; then
-	if [ "${cmd}" == "${default_cmd}" ]; then
-		job_name="${im_name}"
-	else
+	if [ "${cmd}" != "${default_cmd}" ]; then
 		job_name="${cmd}"
 		# remove "python " and ".py"
 		job_name="$(echo $job_name | sed -E -e 's/.*python//')"
@@ -134,6 +136,13 @@ if [ "${job_name}" == "" ]; then
 		job_name="${job_name//-/}"
 		job_name="${job_name// /-}"
 		job_name="${job_name//\_/-}"
+	# else, use default job name from env var
+	elif [ "${default_job_name}" != "" ]; then
+		job_name="${default_job_name}"
+	# if default command used and env var not set, error.
+	else
+		echo 'Job name not given, default command used. Please set `RUNAI_NAME` for default job name.'
+		exit 1
 	fi
 	# max job name length
 	# job_name=${job_name:0:26}
@@ -212,7 +221,7 @@ runai submit --name "$job_name" \
 # If desired, job status until RUNNING
 #####################################################################################
 
-if [ "$follow" = true ]; then
+if [ "${follow}" == True ]; then
 	# Get job status
 	function get_status {
 		pat="status: ([a-zA-Z]*)"
