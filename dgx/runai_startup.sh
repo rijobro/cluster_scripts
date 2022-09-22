@@ -13,30 +13,30 @@ cmd="sleep infinity"
 #####################################################################################
 print_usage()
 {
-	echo 'Script to be run at start of runai job.'
-	echo
-	echo 'Brief syntax:'
+    echo 'Script to be run at start of runai job.'
+    echo
+    echo 'Brief syntax:'
     echo "${0##*/} [OPTIONS(0)...] [ : [OPTIONS(N)...]] [-- <cmd>]"
-	echo
+    echo
     echo 'Full syntax:'
-	echo "${0##*/} [-h|--help] [-d|--dir <val>] [-- <cmd>]"
-	echo
-	echo 'options without args:'
-	echo '-h, --help                : Print this help.'
+    echo "${0##*/} [-h|--help] [-d|--dir <val>] [-- <cmd>]"
+    echo
+    echo 'options without args:'
+    echo '-h, --help                : Print this help.'
     echo
     echo 'options with args:'
-	echo '-d, --dir <val>           : Directory to run from. Default: `pwd`.'
-	echo '-e, --env <name=val>      : Environmental variable, given as "NAME=VAL".'
-	echo '                            Can be used multiple times.'
-	echo
-	echo 'NB: if `-- <cmd>` not given, `sleep infinity` is used.'
+    echo '-d, --dir <val>           : Directory to run from. Default: `pwd`.'
+    echo '-e, --env <name=val>      : Environmental variable, given as "NAME=VAL".'
+    echo '                            Can be used multiple times.'
+    echo
+    echo 'NB: if `-- <cmd>` not given, `sleep infinity` is used.'
 }
 
 #####################################################################################
 # Parse input arguments
 #####################################################################################
 while [[ $# -gt 0 ]]; do
-	key="$1"
+    key="$1"
     shift
     if [ "$key" == "--" ]; then
         if [ "$#" -gt 0 ]; then
@@ -44,26 +44,26 @@ while [[ $# -gt 0 ]]; do
         fi
         break
     fi
-	case $key in
-		-h|--help)
-			print_usage
-			exit 0
-		;;
-		-d|--dir)
+    case $key in
+        -h|--help)
+            print_usage
+            exit 0
+        ;;
+        -d|--dir)
             run_dir=$1
             shift
         ;;
-		-e|--env)
-			if [[ -z "${envs}" ]]; then envs=(); fi
-			envs+=($1)
-			shift
-		;;
-		*)
-			echo -e "\n\nUnknown argument: $key\n\n"
-			print_usage
-			exit 1
-		;;
-	esac
+        -e|--env)
+            if [[ -z "${envs}" ]]; then envs=(); fi
+            envs+=($1)
+            shift
+        ;;
+        *)
+            echo -e "\n\nUnknown argument: $key\n\n"
+            print_usage
+            exit 1
+        ;;
+    esac
 done
 
 # Print vals
@@ -74,7 +74,7 @@ echo "SSH address: $(hostname -i)"
 echo
 echo "Environmental variables:"
 for env in "${envs[@]}"; do
-	echo -e "\t${env}"
+    echo -e "\t${env}"
 done
 echo
 
@@ -88,8 +88,8 @@ source /home/$(whoami)/.bashrc
 
 # Add any environmental variables
 for env in "${envs[@]}"; do
-	export ${env}
-	printf "export ${env}\n" >> ~/.bashrc
+    export ${env}
+    printf "export ${env}\n" >> ~/.bashrc
 done
 
 cd $run_dir

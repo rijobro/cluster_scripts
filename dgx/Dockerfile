@@ -68,7 +68,7 @@ RUN echo "source bash_profile/rich_bashrc.sh" >> ~/.bashrc
 # Set up SSHD to be run as non-sudo user
 ################################################################################
 RUN mkdir -p ~/.ssh && \
-	ssh-keygen -f ~/.ssh/id_rsa -N '' -t rsa && \
+    ssh-keygen -f ~/.ssh/id_rsa -N '' -t rsa && \
     ssh-keygen -f ~/.ssh/id_dsa -N '' -t dsa
 
 RUN echo "PasswordAuthentication yes" >> ~/.ssh/sshd_config && \

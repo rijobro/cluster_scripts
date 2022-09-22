@@ -60,8 +60,8 @@ print_usage()
     echo '                             %j is jobid. Folder will be created if necessary.'
     echo "-p, --partition <val>     : Partition to use. Default: ${partition}."
     echo "-n, --nodes <val>         : Number of nodes. Default: ${nodes}."
-	echo '-c, --check <val>        : If true, and cmd is given, get filename and check it exists.'
-	echo "                             deleted? Default: ${check}."
+    echo '-c, --check <val>        : If true, and cmd is given, get filename and check it exists.'
+    echo "                             deleted? Default: ${check}."
     echo
 }
 
@@ -202,18 +202,18 @@ echo
 # Check file exists in path
 #####################################################################################
 if [ "${check}" == True ]; then
-	# loop over each word in cmd
-	for i in ${cmd}; do
-		# if one contains .py, check file exists
-		if [[ $i == *".py" ]]; then
-			path="${run_dir}/$i"
-			if [ ! -f "$path" ]; then
-				echo "$path: does not exist. Use --check False if this is expected."
-				exit 1
-			fi
-			break
-		fi
-	done
+    # loop over each word in cmd
+    for i in ${cmd}; do
+        # if one contains .py, check file exists
+        if [[ $i == *".py" ]]; then
+            path="${run_dir}/$i"
+            if [ ! -f "$path" ]; then
+                echo "$path: does not exist. Use --check False if this is expected."
+                exit 1
+            fi
+            break
+        fi
+    done
 fi
 
 #####################################################################################
