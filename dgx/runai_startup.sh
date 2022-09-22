@@ -82,8 +82,9 @@ echo
 # Correct "~" (runai bug), source bashrc, add env vars, cd to run dir
 #####################################################################################
 
-export HOME=/home/$(whoami)
-source ~/.bashrc
+export HOME=/nfs/home/$(whoami)
+source /nfs/home/$(whoami)/.bashrc
+source /home/$(whoami)/.bashrc
 
 # Add any environmental variables
 for env in "${envs[@]}"; do
@@ -96,8 +97,8 @@ cd $run_dir
 #####################################################################################
 # Start jupyter and sshd
 #####################################################################################
-nohup /usr/sbin/sshd -D -f ~/.ssh/sshd_config -E ~/.ssh/sshd.log &
-nohup jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir=".." > ~/.jupyter_notebook.log 2>&1 &
+nohup /usr/sbin/sshd -D -f /home/$(whoami)/.ssh/sshd_config -E /home/$(whoami)/.ssh/sshd.log &
+nohup jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir=".." > /home/$(whoami)/.jupyter_notebook.log 2>&1 &
 
 #####################################################################################
 # Execute command
