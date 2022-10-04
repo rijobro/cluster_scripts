@@ -21,6 +21,7 @@ nodes=1
 default_devel_time_limit="1"
 default_time_limit="6"
 check=True
+cmd="sleep infinity"
 
 #####################################################################################
 # Usage
@@ -39,7 +40,7 @@ print_usage()
     echo '                  [-g|--gpu <val>] [-n,--cpu <val>]'
     echo '                  [-J|--name <val>] [-e|--exp <val>]'
     echo '                  [-o|--out <val>] [-p|--partition <val>]'
-    echo '                  [-n|--nodes <val>] -- <cmd>'
+    echo '                  [-n|--nodes <val>] [-s|--ssh <val>] -- <cmd>'
     echo
     echo 'options without args:'
     echo '-h, --help                : Print this help.'
@@ -140,12 +141,6 @@ done
 # Post-process input arguments
 #####################################################################################
 
-# Check cmd is present
-if [ -z "${cmd}" ]; then
-    echo 'Requires "-- <cmd>"'
-    exit 1
-fi
-
 # default time limit
 if [ "${time_limit}" == "" ]; then
     echo here1
@@ -237,6 +232,14 @@ $(echo -e ${mail})
 #SBATCH --out ${out}
 
 set -e # exit on error
+
+if [ "$ssh_server" = true ]; then
+    myhost=\$(hostname)
+    echo hostname: \$myhost
+    hostip=\$(hostname -I | awk '{print \$2}')
+    echo hostip: \$hostip
+    # port=\$(/jmain02/apps/spack/gcc-5.4.0/virtualgl/2.5.2/bin/nettest -findport
+fi
 
 # the trap code is designed to send a stop (SIGTERM) signal to child processes,
 # thus allowing python code to catch the signal and execute a callback
