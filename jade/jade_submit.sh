@@ -21,6 +21,7 @@ nodes=1
 default_devel_time_limit="1"
 default_time_limit="6"
 check=True
+follow=True
 cmd="sleep infinity"
 
 #####################################################################################
@@ -35,7 +36,7 @@ print_usage()
     echo "${0##*/} [OPTIONS(0)...] [ : [OPTIONS(N)...]] -- <cmd>"
     echo
     echo 'Full syntax:'
-    echo "${0##*/} [-h|--help] [-m|--mail] [-f|--follow]"
+    echo "${0##*/} [-h|--help] [-m|--mail] [-f|--follow <val>]"
     echo '                  [-d|--dir <val>] [-t|--time <val>]'
     echo '                  [-g|--gpu <val>] [-n,--cpu <val>]'
     echo '                  [-J|--name <val>] [-e|--exp <val>]'
@@ -46,7 +47,6 @@ print_usage()
     echo '-h, --help                : Print this help.'
     echo '-m, --mail                : Send status emails. Will read email address from environment'
     echo '                             variable `JADE_EMAIL`. If missing, an error will be raised.'
-    echo '-f, --follow              : After submitting, follow job with `tail -f`.'
     echo
     echo 'options with args:'
     echo '-d, --dir <val>           : Directory to run from. Default: `pwd`.'
@@ -57,6 +57,7 @@ print_usage()
     echo '-e, --exp <val>           : Environment variables to export (comma separated).'
     echo '                             Default read from environment variable `JADE_EXPORT`.'
     echo '                             If this environment variable is not present, nothing is exported.'
+    echo "-f, --follow <val>        : After submitting, follow job. Default: ${follow}."
     echo '-o, --out <val>           : File to save output. Default: `$HOME/job_logs/%j.out`.'
     echo '                             %j is jobid. Folder will be created if necessary.'
     echo "-p, --partition <val>     : Partition to use. Default: ${partition}."
@@ -107,7 +108,8 @@ while [[ $# -gt 0 ]]; do
             use_mail=true
         ;;
         -f|--follow)
-            follow=true
+            follow="$1"
+            shift
         ;;
         -e|--exp)
             exp="${1}"
