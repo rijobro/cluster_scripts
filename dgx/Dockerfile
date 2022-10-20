@@ -103,9 +103,12 @@ RUN python -m pip install --upgrade -r https://raw.githubusercontent.com/Project
 RUN python -m pip install --upgrade -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/docs/requirements.txt
 RUN python -m pip install --upgrade -r https://raw.githubusercontent.com/Project-MONAI/tutorials/master/requirements.txt
 RUN python -m pip install --upgrade ipywidgets torchsummary scikit-learn jupyterthemes
-RUN conda install -c conda-forge tensorboardx
-# moviepy has to be via pip: conda 1.0.3 gives error: name 'func' is not defined
-RUN python -m pip install moviepy nvitop
+RUN python -m pip install --upgrade tensorboardx
+RUN pip uninstall opencv-python opencv-contrib-python opencv-contrib-python-headless && pip install opencv-contrib-python==4.5.5.62
+# moviepy
+RUN DEBIAN_FRONTEND=noninteractive apt install ffmpeg -y
+RUN git clone https://github.com/Zulko/moviepy.git && cd moviepy && python setup.py install
+RUN python -m pip install --upgrade nvitop
 
 USER ${UNAME}
 
