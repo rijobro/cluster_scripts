@@ -23,6 +23,9 @@ default_time_limit="6"
 check=True
 follow=True
 cmd="sleep infinity"
+jupyter=False
+vscode_server=False
+conda_env="${JADE_CONDA}"
 
 #####################################################################################
 # Usage
@@ -41,7 +44,8 @@ print_usage()
     echo '                  [-g|--gpu <val>] [-n,--cpu <val>]'
     echo '                  [-J|--name <val>] [-e|--exp <val>]'
     echo '                  [-o|--out <val>] [-p|--partition <val>]'
-    echo '                  [-n|--nodes <val>] [-s|--ssh <val>] -- <cmd>'
+    echo '                  [-n|--nodes <val>] [-v|--vscode <val>]'
+    echo '                  [-j|--jupyter <val>] -- <cmd>'
     echo
     echo 'options without args:'
     echo '-h, --help                : Print this help.'
@@ -62,8 +66,20 @@ print_usage()
     echo '                             %j is jobid. Folder will be created if necessary.'
     echo "-p, --partition <val>     : Partition to use. Default: ${partition}."
     echo "-n, --nodes <val>         : Number of nodes. Default: ${nodes}."
-    echo '-c, --check <val>        : If true, and cmd is given, get filename and check it exists.'
+    echo '-c, --check <val>         : If true, and cmd is given, get filename and check it exists.'
     echo "                             deleted? Default: ${check}."
+    echo '-j, --jupyter <val>       : If true, start an instance of `jupyter notebook`. A randomly selected free port'
+    echo '                             will be used, and this port will be printed to the jobs log along with the'
+    echo '                             compute hostname. You can then create a tunnel connection'
+    echo '                             from your local through the JADE login node and finishing with the compute'
+    echo '                             node, e.g.,: ssh -L <port>:<hostname>:<port> jade.'
+    echo '-v, --vscode <val>        : If true, start an instance of `vscode-server`. A randomly selected free port'
+    echo '                             will be used, and this port will be printed to the jobs log along with the'
+    echo '                             server token and compute hostname. You can then create a tunnel connection'
+    echo '                             from your local through the JADE login node and finishing with the compute'
+    echo '                             node, e.g.,: ssh -L <port>:<hostname>:<port> jade.'
+    echo '-c, --conda <val>         : Conda environment to use. If not given, use the `JADE_CONDA` env variable.'
+    echo '                             If `JADE_CONDA` does not exist, do not activate a conda environment.'
     echo
 }
 
@@ -131,6 +147,18 @@ while [[ $# -gt 0 ]]; do
             check=$1
             shift
         ;;
+        -j|--jupyter)
+            jupyter=$1
+            shift
+        ;;
+        -v|--vscode_server)
+            vscode_server=$1
+            shift
+        ;;
+        -c|--conda)
+            conda_env=$1
+            shift
+        ;;
         *)
             echo -e "\n\nUnknown argument: $key\n\n"
             print_usage
@@ -145,7 +173,6 @@ done
 
 # default time limit
 if [ "${time_limit}" == "" ]; then
-    echo here1
     if [ "$partition" == "devel" ]; then
         time_limit="0${default_devel_time_limit}:00:00"
     else
@@ -190,13 +217,17 @@ echo "Partition: ${partition}"
 echo "Exports: ${exp}"
 echo "Email: ${email_to_use:-No}"
 echo "Check?: ${check}"
+echo "Follow?: ${follow}"
+echo "Jupyter notebook?: ${jupyter}"
+echo "VSCode server?: ${vscode_server}"
+echo "Conda env: ${conda_env}"
 echo
 echo "Path: ${run_dir}"
 echo "Command: ${cmd}"
 echo
 
 #####################################################################################
-# Check file exists in path
+# Check file exists in command
 #####################################################################################
 if [ "${check}" == True ]; then
     # loop over each word in cmd
@@ -235,19 +266,44 @@ $(echo -e ${mail})
 
 set -e # exit on error
 
-if [ "$ssh_server" = true ]; then
-    myhost=\$(hostname)
-    echo hostname: \$myhost
-    hostip=\$(hostname -I | awk '{print \$2}')
-    echo hostip: \$hostip
-    # port=\$(/jmain02/apps/spack/gcc-5.4.0/virtualgl/2.5.2/bin/nettest -findport
+echo hostname: \$(hostname)
+
+# conda env if given
+if [ "${conda_env}" != "" ]; then
+    echo -e "\nactivating conda environment ${conda_env}..."
+    source $CONDA_PREFIX/etc/profile.d/conda.sh
+    conda activate ${conda_env}
+fi
+
+function cleanup {
+    rm -f \${jupy_file} \${vs_file}
+}
+trap cleanup EXIT
+
+if [ "$vscode_server" == True ]; then
+    echo -e "\nstarting vscode-server..."
+    module load use.dev
+    module load code-server &> /dev/null
+    vs_file=/tmp/nohup_jupyter_${RANDOM}.out
+    nohup code-server --accept-server-license-terms --disable-telemetry \
+        --host 0.0.0.0 --port 8866-8887 serve-local > \$vs_file 2>&1 &
+    sleep 10
+    echo vscode-server URL: \$(grep -oP '(http://.*)$' \${vs_file})
+fi
+
+if [ "$jupyter" == True ]; then
+    echo -e "\nstarting jupyter notebook..."
+    jupy_file=/tmp/nohup_jupyter_${RANDOM}.out
+    nohup jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir="~" > \$jupy_file 2>&1 &
+    sleep 60
+    echo Jupyter URL: \$(grep -oP '(http://.*)$' \${jupy_file})
 fi
 
 # the trap code is designed to send a stop (SIGTERM) signal to child processes,
 # thus allowing python code to catch the signal and execute a callback
 trap 'trap " " SIGTERM; kill 0; wait' SIGTERM
 
-echo running ${cmd}
+echo -e "\nrunning ${cmd}"
 
 ${cmd} &
 wait \$!
@@ -270,7 +326,7 @@ fi
 echo ${sbatch_out}
 
 # If successful and following desired
-if [ "$sbatch_success" -eq 0 ] && [ "$follow" = true ]; then
+if [ "$sbatch_success" -eq 0 ] && [ "$follow" == True ]; then
     echo "Waiting for job to start..."
     log_fname=${out/\%j/${job_id}}
     while [ ! -f $log_fname ]; do
