@@ -6,7 +6,7 @@ set -e # stop on error
 # Default variables
 #####################################################################################
 docker_push=false
-docker_base="nvcr.io/nvidia/pytorch:22.07-py3"
+docker_base="nvcr.io/nvidia/pytorch:22.09-py3"
 docker_im_name="${RUNAI_NAME}"
 pwd_hash="${RUNAI_SSH_HASH}"
 jupy_pwd_hash="${RUNAI_JUPY_HASH}"
