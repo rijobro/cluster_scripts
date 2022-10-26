@@ -102,13 +102,10 @@ RUN python -m pip install --upgrade -r https://raw.githubusercontent.com/Project
 RUN python -m pip install --upgrade -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/requirements-dev.txt
 RUN python -m pip install --upgrade -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/docs/requirements.txt
 RUN python -m pip install --upgrade -r https://raw.githubusercontent.com/Project-MONAI/tutorials/master/requirements.txt
-RUN python -m pip install --upgrade ipywidgets torchsummary scikit-learn jupyterthemes
-RUN python -m pip install --upgrade tensorboardx
-RUN pip uninstall opencv-python opencv-contrib-python opencv-contrib-python-headless && pip install opencv-contrib-python==4.5.5.62
-# moviepy
-RUN DEBIAN_FRONTEND=noninteractive apt install ffmpeg -y
-RUN git clone https://github.com/Zulko/moviepy.git && cd moviepy && python setup.py install
-RUN python -m pip install --upgrade nvitop
+RUN python -m pip install --upgrade tensorboardx nvitop moviepy ipywidgets torchsummary scikit-learn jupyterthemes
+# opencv causing problems, manually install dependencies and a version we know to work
+RUN DEBIAN_FRONTEND=noninteractive apt install ffmpeg libsm6 libxext6  -y
+RUN python -m pip install --upgrade opencv-contrib-python==4.5.5.62
 
 USER ${UNAME}
 
