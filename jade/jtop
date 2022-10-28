@@ -13,7 +13,7 @@ loop=1
 print_usage()
 {
     # Display Help
-    echo "JADE usage monitoring. Probes on loop until Ctrl+C."
+    echo "JADE usage monitoring averaged across the last hour. Probes on loop until Ctrl+C."
     echo
     echo "Brief syntax:"
     echo "${0##*/} [OPTIONS]"
@@ -108,7 +108,7 @@ get_stats() {
     local tres=$1
     if [ "$tres" == gpu ]; then tres="gres/gpu"; fi
     local vals
-    vals=$(sreport -n -tminper Cluster Utilization Format=\""$FORMATS_COMMA_SEPARATED"\" --tres="$tres")
+    vals=$(sreport -n -tminper Cluster Utilization Format=\""$FORMATS_COMMA_SEPARATED"\" START=now-1hour --tres="$tres")
     [[ $vals =~ $regex ]]
     if [ ${#BASH_REMATCH[@]} != $l ]; then
         echo something wrong
