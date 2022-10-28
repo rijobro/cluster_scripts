@@ -1,0 +1,181 @@
+#!/bin/bash
+
+set -e # exit on error
+
+#####################################################################################
+# Default variables
+#####################################################################################
+loop=1
+
+#####################################################################################
+# Usage
+#####################################################################################
+print_usage()
+{
+    # Display Help
+    echo "JADE usage monitoring. Probes on loop until Ctrl+C."
+    echo
+    echo "Brief syntax:"
+    echo "${0##*/} [OPTIONS]"
+    echo
+    echo "Full syntax:"
+    echo "${0##*/} [-h|--help] [-l|--loop <val>]"
+    echo
+    echo "options without args:"
+    echo "-h, --help          : Print this help."
+    echo
+    echo "options with args:"
+    echo "-l, --loop <val>    : Loop interval in seconds (default: ${loop})."
+    echo
+}
+
+
+#####################################################################################
+# Parse input arguments
+#####################################################################################
+while [[ $# -gt 0 ]]; do
+    key="$1"
+    shift
+    case $key in
+        -h|--help)
+            print_usage
+            exit 0
+        ;;
+        -l|--loop)
+            loop=$1
+            shift
+        ;;
+        *)
+            echo -e "\n\nUnknown argument: $key\n\n"
+            print_usage
+            exit 1
+        ;;
+    esac
+done
+
+
+#####################################################################################
+# Utility functions
+#####################################################################################
+# Repeat given char N times using shell function
+repeat() {
+    local val=$1
+    local num=$2
+    local range
+	range=$(seq 1 "$num")
+	for i in $range; do echo -n "${val}"; done
+}
+
+# colours
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NOCOLOR='\033[0m'
+
+
+# if idle >= 50 green, elif >= 30 yellow, else red
+set_colour() {
+    local str
+    local val
+    local c
+    str=$1
+    val=$2
+    if (( $(echo "$val >= 50" | bc -l) )); then
+        c=$GREEN
+    elif (( $(echo "$val >= 30" | bc -l) )); then
+        c=$YELLOW
+    else
+        c=$RED
+    fi
+    echo "$c${str}$NOCOLOR"
+}
+
+
+#####################################################################################
+# Functions for getting usage and printing as a coloured bar
+#####################################################################################
+
+FORMATS=("Allocated" "Reserved" "Down" "Idle")
+NFORMAT="${#FORMATS[@]}"
+printf -v FORMATS_COMMA_SEPARATED '%s,' "${FORMATS[@]}"
+FORMATS_COMMA_SEPARATED=${FORMATS_COMMA_SEPARATED::-1}
+SYMBOLS="#=↓ "
+
+get_stats() {
+    local regex="\(([0-9\.]+)\%.+?\(([0-9\.]+)\%.+?\(([0-9\.]+)\%.+?\(([0-9\.]+)"
+    local l=$(( NFORMAT + 1 ))
+    local tres=$1
+    if [ "$tres" == gpu ]; then tres="gres/gpu"; fi
+    local vals
+    vals=$(sreport -n -tminper Cluster Utilization Format=\""$FORMATS_COMMA_SEPARATED"\" --tres="$tres")
+    [[ $vals =~ $regex ]]
+    if [ ${#BASH_REMATCH[@]} != $l ]; then
+        echo something wrong
+        exit 1
+    fi
+    for (( i=1; i<l; i++ )); do echo "${BASH_REMATCH[$i]}" ; done
+}
+
+get_bar() {
+    # width of bar is 0.7 of terminal width
+    local w
+    w=$(printf "%.0f" "$(echo "scale=2; $(tput cols)*0.5" | bc)")
+    local bar=""
+    # go to n - 1 as idle is remaining spaces
+    for (( i=0; i<NFORMAT; i++ )); do
+        val=$1; shift
+        if [ "$i" != $(( NFORMAT - 1 )) ]; then
+            num_chars=$(printf "%.0f" "$(echo "scale=2; $val*$w/100" | bc)")
+        else
+            # for the last one, use the difference between current and desired
+            # lengths so that we dont have any rounding errors
+            num_chars=$(( w - ${#bar} ))
+        fi
+        bar="${bar}$(repeat "${SYMBOLS:i:1}" ${num_chars})"
+    done
+    local idle=$val
+    local name=$1
+    # set colour depending on idle
+    bar=$(set_colour "${bar}" "$idle")
+    echo -e "${name}: |$bar| Idle: $idle%"
+}
+
+
+title() {
+    local name="JADE usage"
+    local offset=$(( $(tput cols) - ${#name} - 1 ))
+    printf "%s %${offset}s\n" "$name" "$(date)"
+}
+
+
+#####################################################################################
+# Print info
+#####################################################################################
+print() {
+    cpu=$(get_bar $(get_stats cpu) CPU)
+    mem=$(get_bar $(get_stats mem) Mem)
+    gpu=$(get_bar $(get_stats gpu) GPU)
+
+    title
+    echo -e "$cpu"
+    echo -e "$mem"
+    echo -e "$gpu"
+
+    # legend
+    echo -en "\nLegend:"
+    for (( i=0; i<NFORMAT; i++ )); do
+        echo -n "   ${FORMATS[$i]}: \"${SYMBOLS:i:1}\""
+    done
+
+    # colour
+    echo -en "\n          "
+    echo -en "${GREEN}Green: 50-100% idle${NOCOLOR}, "
+    echo -en "${YELLOW}Yellow: 30-50% idle${NOCOLOR}, "
+    echo -en "${RED}Red: <30% idle${NOCOLOR}"
+}
+
+while true; do
+    output="$(clear; print)"
+    echo -e "$output"
+    sleep "$loop"
+done
