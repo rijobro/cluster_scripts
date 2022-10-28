@@ -95,14 +95,15 @@ set_colour() {
 # Functions for getting usage and printing as a coloured bar
 #####################################################################################
 
-FORMATS=("Allocated" "Reserved" "Down" "Idle")
+FORMATS=("Allocated" "Reserved" "Down" "PlannedDown" "Idle")
 NFORMAT="${#FORMATS[@]}"
 printf -v FORMATS_COMMA_SEPARATED '%s,' "${FORMATS[@]}"
 FORMATS_COMMA_SEPARATED=${FORMATS_COMMA_SEPARATED::-1}
-SYMBOLS="#=↓ "
+SYMBOLS="#=↓. "
 
 get_stats() {
-    local regex="\(([0-9\.]+)\%.+?\(([0-9\.]+)\%.+?\(([0-9\.]+)\%.+?\(([0-9\.]+)"
+    local regex="\(([0-9\.]+)\%.+?"
+    regex=$(repeat "$regex" "$NFORMAT")
     local l=$(( NFORMAT + 1 ))
     local tres=$1
     if [ "$tres" == gpu ]; then tres="gres/gpu"; fi
