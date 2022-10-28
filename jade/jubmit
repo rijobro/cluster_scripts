@@ -4,7 +4,7 @@ set -e # exit on error
 
 # cleanup -- delete temporary file
 function cleanup {
-    rm -f ${tmp_file}
+    rm -f "${tmp_file}"
 }
 trap cleanup EXIT
 
@@ -32,54 +32,55 @@ conda_env="${JADE_CONDA}"
 #####################################################################################
 print_usage()
 {
-    echo 'SLURM submit script for JADE. Anything after the double hyphen will be executed as command in job.'
-    echo '  This could be "python script.py", for example.'
+    echo "SLURM submit script for JADE. Anything after the double hyphen will be executed as command in job."
+    echo "  This could be \"python script.py\", for example."
     echo
-    echo 'Brief syntax:'
+    echo "Brief syntax:"
     echo "${0##*/} [OPTIONS(0)...] [ : [OPTIONS(N)...]] -- <cmd>"
     echo
-    echo 'Full syntax:'
+    echo "Full syntax:"
     echo "${0##*/} [-h|--help] [-m|--mail] [-f|--follow <val>]"
-    echo '                  [-d|--dir <val>] [-t|--time <val>]'
-    echo '                  [-g|--gpu <val>] [-n,--cpu <val>]'
-    echo '                  [-J|--name <val>] [-e|--exp <val>]'
-    echo '                  [-o|--out <val>] [-p|--partition <val>]'
-    echo '                  [-n|--nodes <val>] [-v|--vscode <val>]'
-    echo '                  [-j|--jupyter <val>] -- <cmd>'
+    echo "                  [-d|--dir <val>] [-t|--time <val>]"
+    echo "                  [-g|--gpu <val>] [-n,--cpu <val>]"
+    echo "                  [-J|--name <val>] [-e|--exp <val>]"
+    echo "                  [-o|--out <val>] [-p|--partition <val>]"
+    echo "                  [-N|--nodes <val>] [-C|--check <val>]"
+    echo "                  [-v|--vscode <val>] [-j|--jupyter <val>]"
+    echo "                  [-c|--conda <val>] -- <cmd>"
     echo
-    echo 'options without args:'
-    echo '-h, --help                : Print this help.'
-    echo '-m, --mail                : Send status emails. Will read email address from environment'
-    echo '                             variable `JADE_EMAIL`. If missing, an error will be raised.'
+    echo "options without args:"
+    echo "-h, --help                : Print this help."
+    echo "-m, --mail                : Send status emails. Will read email address from environment"
+    echo "                             variable \`JADE_EMAIL\`. If missing, an error will be raised."
     echo
-    echo 'options with args:'
-    echo '-d, --dir <val>           : Directory to run from. Default: `pwd`.'
+    echo "options with args:"
+    echo "-d, --dir <val>           : Directory to run from. Default: \`pwd\`."
     echo "-t, --time <val>          : Time limit. Default: ${default_devel_time_limit}h if partition is devel, else ${default_time_limit}h."
     echo "-g, --gpu <val>           : Num GPUs. Default: ${gpu}."
     echo "-n, --cpu <val>           : Num CPUs. Default: ${cpu}."
-    echo '-J, --name <val>          : Job name. Default: `<cmd>` (with `python ` stripped if present).'
-    echo '-e, --exp <val>           : Environment variables to export (comma separated).'
-    echo '                             Default read from environment variable `JADE_EXPORT`.'
-    echo '                             If this environment variable is not present, nothing is exported.'
+    echo "-J, --name <val>          : Job name. Default: \`<cmd>\` (with \`python \` stripped if present)."
+    echo "-e, --exp <val>           : Environment variables to export (comma separated)."
+    echo "                             Default read from environment variable \`JADE_EXPORT\`."
+    echo "                             If this environment variable is not present, nothing is exported."
     echo "-f, --follow <val>        : After submitting, follow job. Default: ${follow}."
-    echo '-o, --out <val>           : File to save output. Default: `$HOME/job_logs/%j.out`.'
-    echo '                             %j is jobid. Folder will be created if necessary.'
+    echo "-o, --out <val>           : File to save output. Default: \`$HOME/job_logs/%j.out\`."
+    echo "                             %j is jobid. Folder will be created if necessary."
     echo "-p, --partition <val>     : Partition to use. Default: ${partition}."
-    echo "-n, --nodes <val>         : Number of nodes. Default: ${nodes}."
-    echo '-c, --check <val>         : If true, and cmd is given, get filename and check it exists.'
+    echo "-N, --nodes <val>         : Number of nodes. Default: ${nodes}."
+    echo "-C, --check <val>         : If true, and cmd is given, get filename and check it exists."
     echo "                             deleted? Default: ${check}."
-    echo '-j, --jupyter <val>       : If true, start an instance of `jupyter notebook`. A randomly selected free port'
-    echo '                             will be used, and this port will be printed to the jobs log along with the'
-    echo '                             compute hostname. You can then create a tunnel connection'
-    echo '                             from your local through the JADE login node and finishing with the compute'
-    echo '                             node, e.g.,: ssh -L <port>:<hostname>:<port> jade.'
-    echo '-v, --vscode <val>        : If true, start an instance of `vscode-server`. A randomly selected free port'
-    echo '                             will be used, and this port will be printed to the jobs log along with the'
-    echo '                             server token and compute hostname. You can then create a tunnel connection'
-    echo '                             from your local through the JADE login node and finishing with the compute'
-    echo '                             node, e.g.,: ssh -L <port>:<hostname>:<port> jade.'
-    echo '-c, --conda <val>         : Conda environment to use. If not given, use the `JADE_CONDA` env variable.'
-    echo '                             If `JADE_CONDA` does not exist, do not activate a conda environment.'
+    echo "-j, --jupyter <val>       : If true, start an instance of \`jupyter notebook\`. A randomly selected free port"
+    echo "                             will be used, and this port will be printed to the jobs log along with the"
+    echo "                             compute hostname. You can then create a tunnel connection"
+    echo "                             from your local through the JADE login node and finishing with the compute"
+    echo "                             node, e.g.,: ssh -L <port>:<hostname>:<port> jade."
+    echo "-v, --vscode <val>        : If true, start an instance of \`vscode-server\`. A randomly selected free port"
+    echo "                             will be used, and this port will be printed to the jobs log along with the"
+    echo "                             server token and compute hostname. You can then create a tunnel connection"
+    echo "                             from your local through the JADE login node and finishing with the compute"
+    echo "                             node, e.g.,: ssh -L <port>:<hostname>:<port> jade."
+    echo "-c, --conda <val>         : Conda environment to use. If not given, use the \`JADE_CONDA\` env variable."
+    echo "                             If \`JADE_CONDA\` does not exist, do not activate a conda environment."
     echo
 }
 
@@ -139,11 +140,11 @@ while [[ $# -gt 0 ]]; do
             partition=$1
             shift
         ;;
-        -n|--nodes)
+        -N|--nodes)
             nodes=$1
             shift
         ;;
-        -c|--check)
+        -C|--check)
             check=$1
             shift
         ;;
@@ -203,7 +204,7 @@ if [ "${exp}" != "" ]; then
 fi
 
 # Make sure output folder exists
-mkdir -p $(dirname "$out")
+mkdir -p "$(dirname "$out")"
 
 # Print vals
 echo
@@ -261,7 +262,7 @@ cat > ${tmp_file} << EOL
 #SBATCH --chdir ${run_dir}
 #SBATCH -n ${cpu}
 ${exp_cmd}
-$(echo -e ${mail})
+$(echo -e "${mail}")
 #SBATCH --out ${out}
 
 set -e # exit on error
@@ -320,17 +321,17 @@ sbatch_success=$?
 if [ "$sbatch_success" -eq 0 ]; then
     job_id=$(echo "$sbatch_out" | awk '{print $NF}')
     # print info about job
-    scontrol show job ${job_id}
+    scontrol show job "${job_id}"
 fi
 # Always print sbatch output
-echo ${sbatch_out}
+echo "${sbatch_out}"
 
 # If successful and following desired
 if [ "$sbatch_success" -eq 0 ] && [ "$follow" == True ]; then
     echo "Waiting for job to start..."
     log_fname=${out/\%j/${job_id}}
-    while [ ! -f $log_fname ]; do
+    while [ ! -f "$log_fname" ]; do
         sleep 1
     done
-    tail -f $log_fname
+    tail -f "$log_fname"
 fi

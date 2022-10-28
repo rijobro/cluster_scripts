@@ -15,21 +15,21 @@ state=""
 print_usage()
 {
     # Display Help
-    echo 'SLURM sacct wrapper. Prints the information I find most useful, with'
-    echo '  convenience wrappers for arguments I use most frequently.'
+    echo "SLURM sacct wrapper. Prints the information I find most useful, with"
+    echo "  convenience wrappers for arguments I use most frequently."
     echo
-    echo 'Brief syntax:'
-    echo 'jade_sacct.sh [OPTIONS(0)...] [ : [OPTIONS(N)...]] -- <cmd>'
+    echo "Brief syntax:"
+    echo "${0##*/} [OPTIONS(0)...] [ : [OPTIONS(N)...]] -- <cmd>"
     echo
-    echo 'Full syntax:'
-    echo 'Syntax: jade_submit.sh [-h|--help] [-t|--time] [-u|--units]'
-    echo '                  [-s|--state <val>]'
+    echo "Full syntax:"
+    echo "${0##*/} [-h|--help] [-t|--time] [-u|--units]"
+    echo "                  [-s|--state <val>]"
     echo
-    echo 'options without args:'
-    echo '-h, --help                : Print this help.'
+    echo "options without args:"
+    echo "-h, --help                : Print this help."
     echo
-    echo '-t, --time <val>          : Time frame to report results. Default: 3days.'
-    echo '-s, --state <val>         : State of jobs to prune. Default: all.'
+    echo "-t, --time <val>          : Time frame to report results. Default: 3days."
+    echo "-s, --state <val>         : State of jobs to prune. Default: all."
     echo
 }
 
@@ -67,6 +67,6 @@ if [ "${state}" != "" ]; then
 fi
 
 
-echo Printing jobs over last $time
-SLURM_TIME_FORMAT="%d/%m %H:%M:%S" sacct ${state_cmd} -S now-${time} -X --format="jobid,jobname%40,partition,elapsed,timelimit,state,submit,start"
+echo Printing jobs over last "$time"
+SLURM_TIME_FORMAT="%d/%m %H:%M:%S" sacct "${state_cmd}" -S now-"${time}" -X --format="jobid,jobname%40,partition,elapsed,timelimit,state,submit,start"
 
