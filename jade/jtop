@@ -2,6 +2,7 @@
 
 set -e # exit on error
 
+
 #####################################################################################
 # Default variables
 #####################################################################################
@@ -73,7 +74,7 @@ YELLOW='\033[0;33m'
 NOCOLOR='\033[0m'
 
 
-# if idle >= 50 green, elif >= 30 yellow, else red
+# if percentage >= 50 green, elif >= 70 yellow, else red
 set_colour() {
     local str
     local val
@@ -82,7 +83,7 @@ set_colour() {
     val=$2
     if (( $(echo "$val >= 50" | bc -l) )); then
         c=$GREEN
-    elif (( $(echo "$val >= 30" | bc -l) )); then
+    elif (( $(echo "$val >= 70" | bc -l) )); then
         c=$YELLOW
     else
         c=$RED
@@ -92,55 +93,63 @@ set_colour() {
 
 
 #####################################################################################
-# Functions for getting usage and printing as a coloured bar
+# Get resource usage, create progress bar, get title
 #####################################################################################
 
-FORMATS=("Allocated" "Reserved" "Down" "PlannedDown" "Idle")
+get_usage() {
+    vals=$1
+    name=$2
+    if [ "$name" == "GPU" ]; then
+        alloc="AllocTRES[^ ]*(?<=gpu=)\K[0-9]+"
+        total="CfgTRES[^ ]*(?<=gpu=)\K[0-9]+"
+    elif [ "$name" == "CPU" ]; then
+        alloc="CPUAlloc=\K[0-9]+"
+        total="CPUTot=\K[0-9]+"
+    fi
+    alloc_sum=$(echo "$vals" | grep -oP "$alloc" | paste -sd+ | bc -l)
+    total_sum=$(echo "$vals" | grep -oP "$total" | paste -sd+ | bc -l)
+    down_sum=$(echo "$vals" | grep Reason | grep -oP "$total" | paste -sd+ | bc -l)
+    avail_sum=$(( total_sum - alloc_sum - down_sum ))
+    echo "$name" "$total_sum" "$alloc_sum" "$down_sum" "$avail_sum"
+}
+
+FORMATS=("Alloc" "Down" "Avail")
 NFORMAT="${#FORMATS[@]}"
 printf -v FORMATS_COMMA_SEPARATED '%s,' "${FORMATS[@]}"
 FORMATS_COMMA_SEPARATED=${FORMATS_COMMA_SEPARATED::-1}
-SYMBOLS="#=↓. "
-
-get_stats() {
-    local regex="\(([0-9\.]+)\%.+?"
-    regex=$(repeat "$regex" "$NFORMAT")
-    local l=$(( NFORMAT + 1 ))
-    local tres=$1
-    if [ "$tres" == gpu ]; then tres="gres/gpu"; fi
-    local vals
-    vals=$(sreport -n -tminper Cluster Utilization Format=\""$FORMATS_COMMA_SEPARATED"\" START=now-1hour --tres="$tres")
-    [[ $vals =~ $regex ]]
-    if [ ${#BASH_REMATCH[@]} != $l ]; then
-        echo something wrong
-        exit 1
-    fi
-    for (( i=1; i<l; i++ )); do echo "${BASH_REMATCH[$i]}" ; done
-}
+SYMBOLS="#↓ "
 
 get_bar() {
-    # width of bar is 0.7 of terminal width
+    # width of bar is fraction of terminal width
     local w
     w=$(printf "%.0f" "$(echo "scale=2; $(tput cols)*0.5" | bc)")
+    local name=$1
+    shift
+    local total=$1
+    shift
     local bar=""
-    # go to n - 1 as idle is remaining spaces
+    local legend=" "
     for (( i=0; i<NFORMAT; i++ )); do
         val=$1; shift
+        perc=$(printf "%.2f" "$(echo "scale=2; $val / $total * 100" | bc)")
         if [ "$i" != $(( NFORMAT - 1 )) ]; then
-            num_chars=$(printf "%.0f" "$(echo "scale=2; $val*$w/100" | bc)")
+            num_chars=$(printf "%.0f" "$(echo "scale=2; $w * $perc / 100" | bc)")
+            n="${SYMBOLS:i:1}"
         else
             # for the last one, use the difference between current and desired
             # lengths so that we dont have any rounding errors
             num_chars=$(( w - ${#bar} ))
+            n="Avail"
         fi
+        legend="${legend}$(printf "%s: %-5s" "$n" "$val")"
         bar="${bar}$(repeat "${SYMBOLS:i:1}" ${num_chars})"
     done
-    local idle=$val
-    local name=$1
-    # set colour depending on idle
-    bar=$(set_colour "${bar}" "$idle")
-    echo -e "${name}: |$bar| Idle: $idle%"
+    # available is the last in the list
+    avail=$perc
+    legend="$legend Tot: $total"
+    bar=$(set_colour "${bar}" "$avail")
+    echo -e "${name}: |$bar|$legend"
 }
-
 
 title() {
     local name="JADE usage"
@@ -153,13 +162,12 @@ title() {
 # Print info
 #####################################################################################
 print() {
-    cpu=$(get_bar $(get_stats cpu) CPU)
-    mem=$(get_bar $(get_stats mem) Mem)
-    gpu=$(get_bar $(get_stats gpu) GPU)
+    output=$(scontrol -o show node)
+    gpu=$(get_bar $(get_usage "$output" GPU))
+    cpu=$(get_bar $(get_usage "$output" CPU))
 
     title
     echo -e "$cpu"
-    echo -e "$mem"
     echo -e "$gpu"
 
     # legend
@@ -170,9 +178,9 @@ print() {
 
     # colour
     echo -en "\n          "
-    echo -en "${GREEN}Green: 50-100% idle${NOCOLOR}, "
-    echo -en "${YELLOW}Yellow: 30-50% idle${NOCOLOR}, "
-    echo -en "${RED}Red: <30% idle${NOCOLOR}"
+    echo -en "${GREEN}Green: 50-100% avail${NOCOLOR}, "
+    echo -en "${YELLOW}Yellow: 30-50% avail${NOCOLOR}, "
+    echo -en "${RED}Red: <30% avail${NOCOLOR}"
 }
 
 while true; do
