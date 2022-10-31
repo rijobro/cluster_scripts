@@ -7,6 +7,7 @@ set -e # exit on error
 # Default variables
 #####################################################################################
 loop=1
+ascii=false
 
 #####################################################################################
 # Usage
@@ -24,6 +25,7 @@ print_usage()
     echo
     echo "options without args:"
     echo "-h, --help          : Print this help."
+    echo "-a, --ascii         : Use ascii (no emojis)."
     echo
     echo "options with args:"
     echo "-l, --loop <val>    : Loop interval in seconds (default: ${loop})."
@@ -41,6 +43,9 @@ while [[ $# -gt 0 ]]; do
         -h|--help)
             print_usage
             exit 0
+        ;;
+        -a|--ascii)
+            ascii=true
         ;;
         -l|--loop)
             loop=$1
@@ -73,6 +78,8 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NOCOLOR='\033[0m'
 
+# colour thresholds
+THRESH=(50 20)
 
 # if percentage >= 50 green, elif >= 70 yellow, else red
 set_colour() {
@@ -81,9 +88,9 @@ set_colour() {
     local c
     str=$1
     val=$2
-    if (( $(echo "$val >= 50" | bc -l) )); then
+    if (( $(echo "$val >= ${THRESH[0]}" | bc -l) )); then
         c=$GREEN
-    elif (( $(echo "$val >= 70" | bc -l) )); then
+    elif (( $(echo "$val >= ${THRESH[1]}" | bc -l) )); then
         c=$YELLOW
     else
         c=$RED
@@ -99,6 +106,7 @@ set_colour() {
 get_usage() {
     vals=$1
     name=$2
+    partition=$3
     if [ "$name" == "GPU" ]; then
         alloc="AllocTRES[^ ]*(?<=gpu=)\K[0-9]+"
         total="CfgTRES[^ ]*(?<=gpu=)\K[0-9]+"
@@ -106,27 +114,37 @@ get_usage() {
         alloc="CPUAlloc=\K[0-9]+"
         total="CPUTot=\K[0-9]+"
     fi
-    alloc_sum=$(echo "$vals" | grep -oP "$alloc" | paste -sd+ | bc -l)
-    total_sum=$(echo "$vals" | grep -oP "$total" | paste -sd+ | bc -l)
-    down_sum=$(echo "$vals" | grep Reason | grep -oP "$total" | paste -sd+ | bc -l)
+    if [ "$partition" != "total" ]; then
+        partition="Partitions=.*$partition.* "
+    else
+        partition=""
+    fi
+    alloc_sum=$(echo "$vals" | grep "$partition" | grep -oP "$alloc" | paste -sd+ | bc -l)
+    total_sum=$(echo "$vals" | grep "$partition" | grep -oP "$total" | paste -sd+ | bc -l)
+    down_sum=$(echo "$vals" | grep "$partition" | grep Reason | grep -oP "$total" | paste -sd+ | bc -l)
+    down_sum=${down_sum:-0}
     avail_sum=$(( total_sum - alloc_sum - down_sum ))
-    echo "$name" "$total_sum" "$alloc_sum" "$down_sum" "$avail_sum"
+    echo "$total_sum" "$alloc_sum" "$down_sum" "$avail_sum"
 }
 
 FORMATS=("Alloc" "Down" "Avail")
 NFORMAT="${#FORMATS[@]}"
 printf -v FORMATS_COMMA_SEPARATED '%s,' "${FORMATS[@]}"
 FORMATS_COMMA_SEPARATED=${FORMATS_COMMA_SEPARATED::-1}
-SYMBOLS="#↓ "
+# width is greater with ascii as emojis are bigger
+if [ "$ascii" = true ]; then
+    SYMBOLS="#↓ "
+    WIDTH=0.5
+else
+    SYMBOLS="🔺💀🌱"
+    WIDTH=0.3
+fi
 
 get_bar() {
     # width of bar is fraction of terminal width
-    local w
-    w=$(printf "%.0f" "$(echo "scale=2; $(tput cols)*0.5" | bc)")
-    local name=$1
-    shift
-    local total=$1
-    shift
+    w=$(printf "%.0f" "$(echo "scale=2; $(tput cols)*$WIDTH" | bc)")
+    local partition=$1; shift
+    local total=$1; shift
     local bar=""
     local legend=" "
     for (( i=0; i<NFORMAT; i++ )); do
@@ -134,13 +152,14 @@ get_bar() {
         perc=$(printf "%.2f" "$(echo "scale=2; $val / $total * 100" | bc)")
         if [ "$i" != $(( NFORMAT - 1 )) ]; then
             num_chars=$(printf "%.0f" "$(echo "scale=2; $w * $perc / 100" | bc)")
-            n="${SYMBOLS:i:1}"
+
         else
             # for the last one, use the difference between current and desired
             # lengths so that we dont have any rounding errors
             num_chars=$(( w - ${#bar} ))
-            n="Avail"
         fi
+        n="${SYMBOLS:i:1}"
+        if [ "$n" == " " ]; then n="Avail"; fi
         legend="${legend}$(printf "%s: %-5s" "$n" "$val")"
         bar="${bar}$(repeat "${SYMBOLS:i:1}" ${num_chars})"
     done
@@ -148,7 +167,8 @@ get_bar() {
     avail=$perc
     legend="$legend Tot: $total"
     bar=$(set_colour "${bar}" "$avail")
-    echo -e "${name}: |$bar|$legend"
+
+    printf "%-5s |%s|%s" "$partition" "$bar" "$legend"
 }
 
 title() {
@@ -158,17 +178,20 @@ title() {
 }
 
 
-#####################################################################################
-# Print info
-#####################################################################################
+# #####################################################################################
+# # Print info
+# #####################################################################################
 print() {
     output=$(scontrol -o show node)
-    gpu=$(get_bar $(get_usage "$output" GPU))
-    cpu=$(get_bar $(get_usage "$output" CPU))
-
     title
-    echo -e "$cpu"
-    echo -e "$gpu"
+    for tres in GPU CPU; do
+        echo $tres
+        for partition in total devel small big; do
+            usage=$(get_usage "$output" $tres $partition)
+            echo -e "$(get_bar "$partition" $usage)"
+        done
+        echo
+    done
 
     # legend
     echo -en "\nLegend:"
@@ -176,11 +199,13 @@ print() {
         echo -n "   ${FORMATS[$i]}: \"${SYMBOLS:i:1}\""
     done
 
-    # colour
-    echo -en "\n          "
-    echo -en "${GREEN}Green: 50-100% avail${NOCOLOR}, "
-    echo -en "${YELLOW}Yellow: 30-50% avail${NOCOLOR}, "
-    echo -en "${RED}Red: <30% avail${NOCOLOR}"
+    # colour (only if using ascii characters)
+    if [ "$ascii" = true ]; then
+        echo -en "\n          "
+        echo -en "${GREEN}Green: >=${THRESH[0]}% avail${NOCOLOR}, "
+        echo -en "${YELLOW}Yellow: ${THRESH[1]}-${THRESH[0]}% avail${NOCOLOR}, "
+        echo -en "${RED}Red: <${THRESH[1]}% avail${NOCOLOR}"
+    fi
 }
 
 while true; do
