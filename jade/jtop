@@ -147,12 +147,13 @@ get_bar() {
     local total=$1; shift
     local bar=""
     local legend=" "
+    local sum=0
     for (( i=0; i<NFORMAT; i++ )); do
         val=$1; shift
         perc=$(printf "%.2f" "$(echo "scale=2; $val / $total * 100" | bc)")
+        sum=$(printf "%.2f" "$(echo "scale=2; $sum + $perc" | bc)")
         if [ "$i" != $(( NFORMAT - 1 )) ]; then
-            num_chars=$(printf "%.0f" "$(echo "scale=2; $w * $perc / 100" | bc)")
-
+            num_chars=$(printf "%.0f" "$(echo "scale=2; $w * $sum / 100 - ${#bar}" | bc)")
         else
             # for the last one, use the difference between current and desired
             # lengths so that we dont have any rounding errors
