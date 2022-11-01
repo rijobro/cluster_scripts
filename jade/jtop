@@ -178,6 +178,18 @@ title() {
     printf "%s %${offset}s\n" "$name" "$(date)"
 }
 
+get_gpu_queue() {
+    local queue
+    queue=$(sacct -aX --format="State%-7, Partition, ReqTRES%-100" | grep PENDING)
+    echo "GPUs requested in queue:"
+    for partition in total devel small big; do
+        printf "  %-5s: " "$partition"
+        if [ "$partition" == total ]; then
+            partition=""
+        fi
+        echo "$queue" | grep "$partition" | grep -oP "gres/gpu=[0-9]+" | cut -d '=' -f 2 | paste -sd+ | bc -l
+    done
+}
 
 # #####################################################################################
 # # Print info
@@ -207,6 +219,9 @@ print() {
         echo -en "${YELLOW}Yellow: ${THRESH[1]}-${THRESH[0]}% avail${NOCOLOR}, "
         echo -en "${RED}Red: <${THRESH[1]}% avail${NOCOLOR}"
     fi
+
+    echo -e "\n\n"
+    get_gpu_queue
 }
 
 while true; do
