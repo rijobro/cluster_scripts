@@ -29,7 +29,8 @@ print_usage()
     echo "-h, --help                : Print this help."
     echo
     echo "-t, --time <val>          : Time frame to report results. Default: 3days."
-    echo "-s, --state <val>         : State of jobs to prune. Default: all."
+    echo "-s, --state <val>         : State of jobs to prune. Default: all. Uses ``grep``,"
+    echo "                              so format is RUNNING, PENDING, etc."
     echo
 }
 
@@ -61,12 +62,10 @@ do
     esac
 done
 
-# If state isn't blank
+echo -n "Printing jobs over last $time. "
 if [ "${state}" != "" ]; then
-    state_cmd="-s ${state}"
+    echo -n "State: $state."
 fi
+echo
 
-
-echo Printing jobs over last "$time"
-SLURM_TIME_FORMAT="%d/%m %H:%M:%S" sacct ${state_cmd} -S now-"${time}" -X --format="jobid,jobname%40,partition,elapsed,timelimit,state,submit,start"
-
+SLURM_TIME_FORMAT="%d/%m %H:%M:%S" sacct -S now-"${time}" -X --format="jobid,jobname%40,partition,elapsed,timelimit,state,submit,start" | grep "$state"
