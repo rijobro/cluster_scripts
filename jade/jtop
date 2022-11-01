@@ -183,7 +183,7 @@ gpu_queue() {
     queue=$(sacct -aX --format="State%-7, Partition, ReqTRES%-100" | grep PENDING)
     echo "GPUs requested in queue:"
     for partition in total devel small big; do
-        printf "  %-5s: " "$partition"
+        printf "  %-6s " "$partition:"
         if [ "$partition" == total ]; then
             partition=""
         fi
@@ -226,11 +226,6 @@ queue_time() {
     diff_time "$now" "$expected_start"
 }
 
-queue_times() {
-    echo "Devel: $(queue_time devel)"
-    echo "Small: $(queue_time small)"
-}
-
 
 # #####################################################################################
 # # Print info
@@ -261,11 +256,12 @@ print() {
         echo -en "${RED}Red: <${THRESH[1]}% avail${NOCOLOR}"
     fi
 
-    echo -e "\n\n"
+    echo -e "\n"
     gpu_queue
 
-    echo -e "\n\nEstimated queue times for 10 minute jobs (format: Days-HH:MM:SS)"
-    queue_times
+    echo -e "\nEstimated queue times for 10 minute jobs (format: Days-HH:MM:SS)"
+    echo "  Devel: $(queue_time devel)"
+    echo "  Small: $(queue_time small)"
 }
 
 while true; do
