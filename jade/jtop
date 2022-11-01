@@ -178,7 +178,7 @@ title() {
     printf "%s %${offset}s\n" "$name" "$(date)"
 }
 
-get_gpu_queue() {
+gpu_queue() {
     local queue
     queue=$(sacct -aX --format="State%-7, Partition, ReqTRES%-100" | grep PENDING)
     echo "GPUs requested in queue:"
@@ -190,6 +190,47 @@ get_gpu_queue() {
         echo "$queue" | grep "$partition" | grep -oP "gres/gpu=[0-9]+" | cut -d '=' -f 2 | paste -sd+ | bc -l
     done
 }
+
+diff_time() {
+    local x1=$1
+    local x2=$2
+    local y1=${x1:0:4}
+    local y2=${x2:0:4}
+    local m1=${x1:5:2}
+    local m2=${x2:5:2}
+    local d1=${x1:8:2}
+    local d2=${x2:8:2}
+    local h1=${x1:11:2}
+    local h2=${x2:11:2}
+    local M1=${x1:14:2}
+    local M2=${x2:14:2}
+    local s1=${x1:17:2}
+    local s2=${x2:17:2}
+    local t
+    t=$(( (y2-y1)*31557600 + (m2-m1) * 2629800 + (d2-d1) * 86400 + (h2-h1) * 3600 + (M2-M1) * 60 + (s2-s1) ))
+    ds=$((t % 60))
+    dM=$(((t / 60) % 60))
+    dh=$(((t / 3600) % 24))
+    dd=$(( t / (3600*24) ))
+    printf "%02d-%02d:%02d:%02d\n" "$dd" "$dh" "$dM" "$ds"
+}
+
+queue_time() {
+    local partition=$1
+    local now
+    local submit
+    local expected_start
+    now=$(date +%Y-%m-%dT%H:%M:%S)
+    submit="$(sbatch --test-only --gres=gpu:1 -p "$partition" -t 00:10:00 --wrap "sleep infinity" 2>&1)"
+    expected_start=$(echo "$submit" | grep -oP "[0-9]+\-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+")
+    diff_time "$now" "$expected_start"
+}
+
+queue_times() {
+    echo "Devel: $(queue_time devel)"
+    echo "Small: $(queue_time small)"
+}
+
 
 # #####################################################################################
 # # Print info
@@ -207,7 +248,7 @@ print() {
     done
 
     # legend
-    echo -en "\nLegend:"
+    echo -en "Legend:"
     for (( i=0; i<NFORMAT; i++ )); do
         echo -n "   ${FORMATS[$i]}: \"${SYMBOLS:i:1}\""
     done
@@ -221,7 +262,10 @@ print() {
     fi
 
     echo -e "\n\n"
-    get_gpu_queue
+    gpu_queue
+
+    echo -e "\n\nEstimated queue times for 10 minute jobs (format: Days-HH:MM:SS)"
+    queue_times
 }
 
 while true; do
