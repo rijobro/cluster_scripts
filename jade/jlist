@@ -68,5 +68,5 @@ fi
 
 
 echo Printing jobs over last "$time"
-SLURM_TIME_FORMAT="%d/%m %H:%M:%S" sacct "${state_cmd}" -S now-"${time}" -X --format="jobid,jobname%40,partition,elapsed,timelimit,state,submit,start"
+SLURM_TIME_FORMAT="%d/%m %H:%M:%S" sacct ${state_cmd} -S now-"${time}" -X --format="jobid,jobname%40,partition,elapsed,timelimit,state,submit,start"
 
