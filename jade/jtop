@@ -8,6 +8,7 @@ set -e # exit on error
 #####################################################################################
 loop=20
 ascii=false
+estimate=false
 
 #####################################################################################
 # Usage
@@ -21,11 +22,12 @@ print_usage()
     echo "${0##*/} [OPTIONS]"
     echo
     echo "Full syntax:"
-    echo "${0##*/} [-h|--help] [-l|--loop <val>]"
+    echo "${0##*/} [-h|--help] [-a|--ascii] [-e|--estimate] [-l|--loop <val>]"
     echo
     echo "options without args:"
     echo "-h, --help          : Print this help."
     echo "-a, --ascii         : Use ascii (no emojis)."
+    echo "-e, --estimate      : Use ``sbatch --test-only`` to estimate queue times."
     echo
     echo "options with args:"
     echo "-l, --loop <val>    : Loop interval in seconds (default: ${loop})."
@@ -46,6 +48,9 @@ while [[ $# -gt 0 ]]; do
         ;;
         -a|--ascii)
             ascii=true
+        ;;
+        -e|--estimate)
+            estimate=true
         ;;
         -l|--loop)
             loop=$1
@@ -150,10 +155,10 @@ get_bar() {
     local sum=0
     for (( i=0; i<NFORMAT; i++ )); do
         val=$1; shift
-        perc=$(printf "%.2f" "$(echo "scale=2; $val / $total * 100" | bc)")
-        sum=$(printf "%.2f" "$(echo "scale=2; $sum + $perc" | bc)")
+        sum=$(( sum + val ))
+        frac_sum=$(printf "%.2f" "$(echo "scale=2; $sum / $total" | bc)")
         if [ "$i" != $(( NFORMAT - 1 )) ]; then
-            num_chars=$(printf "%.0f" "$(echo "scale=2; $w * $sum / 100 - ${#bar}" | bc)")
+            num_chars=$(printf "%.0f" "$(echo "scale=2; $w * $frac_sum - ${#bar}" | bc)")
         else
             # for the last one, use the difference between current and desired
             # lengths so that we dont have any rounding errors
@@ -164,8 +169,8 @@ get_bar() {
         legend="${legend}$(printf "%s: %-5s" "$n" "$val")"
         bar="${bar}$(repeat "${SYMBOLS:i:1}" ${num_chars})"
     done
-    # available is the last in the list
-    avail=$perc
+    # last column is available which we need for computing colours
+    avail=$(printf "%.2f" "$(echo "scale=2; $val / $total" | bc)")
     legend="$legend Tot: $total"
     bar=$(set_colour "${bar}" "$avail")
 
@@ -181,13 +186,12 @@ title() {
 gpu_queue() {
     local queue
     queue=$(sacct -aX --format="State%-7, Partition, ReqTRES%-100" | grep PENDING)
-    echo "GPUs requested in queue:"
+    echo "Requested GPUs in queue:"
     for partition in total devel small big; do
-        printf "  %-6s " "$partition:"
-        if [ "$partition" == total ]; then
-            partition=""
+        if [ "$partition" != total ]; then
+            grep_partition="$partition"
         fi
-        echo "$queue" | grep "$partition" | grep -oP "gres/gpu=[0-9]+" | cut -d '=' -f 2 | paste -sd+ | bc -l
+        echo -n " $partition: $(echo "$queue" | grep "$grep_partition" | grep -oP "gres/gpu=[0-9]+" | cut -d '=' -f 2 | paste -sd+ | bc -l)"
     done
 }
 
@@ -226,7 +230,6 @@ queue_time() {
     diff_time "$now" "$expected_start"
 }
 
-
 # #####################################################################################
 # # Print info
 # #####################################################################################
@@ -245,7 +248,11 @@ print() {
     # legend
     echo -en "Legend:"
     for (( i=0; i<NFORMAT; i++ )); do
-        echo -n "   ${FORMATS[$i]}: \"${SYMBOLS:i:1}\""
+        if [ "$ascii" = true ]; then
+            echo -n "   ${FORMATS[$i]}: \"${SYMBOLS:i:1}\""
+        else
+            echo -n "   ${FORMATS[$i]}: ${SYMBOLS:i:1}"
+        fi
     done
 
     # colour (only if using ascii characters)
@@ -259,9 +266,11 @@ print() {
     echo -e "\n"
     gpu_queue
 
-    echo -e "\nEstimated queue times for 10 minute jobs (format: Days-HH:MM:SS)"
-    echo "  Devel: $(queue_time devel)"
-    echo "  Small: $(queue_time small)"
+    if [ "$estimate" = true ]; then
+        echo -e "\nEstimated queue times for 10 minute jobs (format: Days-HH:MM:SS)"
+        echo "  Devel: $(queue_time devel)"
+        echo "  Small: $(queue_time small)"
+    fi
 }
 
 while true; do
