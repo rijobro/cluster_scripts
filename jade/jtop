@@ -167,12 +167,18 @@ get_bar() {
         n="${SYMBOLS:i:1}"
         if [ "$n" == " " ]; then n="Avail"; fi
         legend="${legend}$(printf "%s: %-5s" "$n" "$val")"
-        bar="${bar}$(repeat "${SYMBOLS:i:1}" ${num_chars})"
+        if [ "$num_chars" -gt 0 ]; then
+            bar="${bar}$(repeat "${SYMBOLS:i:1}" ${num_chars})"
+        fi
     done
     # last column is available which we need for computing colours
     avail=$(printf "%.2f" "$(echo "scale=2; $val / $total" | bc)")
     legend="$legend Tot: $total"
     bar=$(set_colour "${bar}" "$avail")
+    # if less than certain width, don't show legend next to bar
+    if [ "$(tput cols)" -lt "120" ]; then
+        legend=""
+    fi
 
     printf "%-5s |%s|%s" "$partition" "$bar" "$legend"
 }
@@ -195,7 +201,7 @@ gpu_queue() {
     done
 }
 
-diff_time() {
+diff_time_seconds() {
     local x1=$1
     local x2=$2
     local y1=${x1:0:4}
@@ -212,6 +218,11 @@ diff_time() {
     local s2=${x2:17:2}
     local t
     t=$(( (y2-y1)*31557600 + (m2-m1) * 2629800 + (d2-d1) * 86400 + (h2-h1) * 3600 + (M2-M1) * 60 + (s2-s1) ))
+    echo $t
+}
+diff_time() {
+    local t
+    t=$(diff_time_seconds $1 $2)
     ds=$((t % 60))
     dM=$(((t / 60) % 60))
     dh=$(((t / 3600) % 24))
@@ -219,12 +230,16 @@ diff_time() {
     printf "%02d-%02d:%02d:%02d\n" "$dd" "$dh" "$dM" "$ds"
 }
 
+get_date() {
+    date +%Y-%m-%dT%H:%M:%S
+}
+
 queue_time() {
     local partition=$1
     local now
     local submit
     local expected_start
-    now=$(date +%Y-%m-%dT%H:%M:%S)
+    now=$(get_date)
     submit="$(sbatch --test-only --gres=gpu:1 -p "$partition" -t 00:10:00 --wrap "sleep infinity" 2>&1)"
     expected_start=$(echo "$submit" | grep -oP "[0-9]+\-[0-9]+-[0-9]+T[0-9]+:[0-9]+:[0-9]+")
     diff_time "$now" "$expected_start"
@@ -273,8 +288,19 @@ print() {
     fi
 }
 
+# initial date is yesterday to trigger inital update
+t_then=$(date -d "$date -1 days" +%Y-%m-%dT%H:%M:%S)
+w_then=$(tput cols)
 while true; do
-    output="$(clear; print)"
-    echo -e "$output"
-    sleep "$loop"
+    t_now=$(get_date)
+    elapsed=$(diff_time_seconds "$t_then" "$t_now")
+    w_now=$(tput cols)
+    # update after certain amount of time or change of width
+    if [[ "$elapsed" -ge "$loop" ]] || [[ $(( w_now - w_then )) -ne 0 ]]; then
+        output="$(clear; print)"
+        echo -e "$output"
+        t_then=$t_now
+        w_then=$w_now
+    fi
+    sleep 0.1
 done
