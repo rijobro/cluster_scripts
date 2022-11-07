@@ -10,6 +10,7 @@ docker_base="nvcr.io/nvidia/pytorch:22.09-py3"
 docker_im_name="${RUNAI_NAME}"
 pwd_hash="${RUNAI_SSH_HASH}"
 jupy_pwd_hash="${RUNAI_JUPY_HASH}"
+vncserver=true
 
 ################################################################################
 # Usage
@@ -17,32 +18,33 @@ jupy_pwd_hash="${RUNAI_JUPY_HASH}"
 print_usage()
 {
     # Display Help
-    echo 'Build docker image and upload it to docker hub.'
+    echo "Build docker image and upload it to docker hub."
     echo
-    echo 'Brief syntax:'
+    echo "Brief syntax:"
     echo "${0##*/} [OPTIONS(0)...] [ : [OPTIONS(N)...]]"
     echo
-    echo 'Full syntax:'
+    echo "Full syntax:"
     echo "${0##*/} [-h|--help] [-d|--docker_push]"
-    echo '                  [-b|--docker_base <val>] [-i|--docker_im_name]'
-    echo '                  [-p|--pwd_hash <val] [-j|--jupy_pwd_hash <val>]'
-    echo '                  [-a|--docker_args <val>]'
+    echo "                  [-b|--docker_base <val>] [-i|--docker_im_name]"
+    echo "                  [-p|--pwd_hash <val] [-j|--jupy_pwd_hash <val>]"
+    echo "                  [-a|--docker_args <val>] [-V|--vncserver <val>]"
     echo
-    echo 'options:'
-    echo '-h, --help              : Print this help.'
+    echo "options:"
+    echo "-h, --help              : Print this help."
     echo
-    echo '-d, --docker_push       : Push the created image to dockerhub.'
+    echo "-d, --docker_push       : Push the created image to dockerhub."
     echo "-b, --docker_base       : Base docker image. Default: ${docker_base}."
-    echo '-i, --docker_im_name    : Name of image to be uploaded to docker hub. Default from'
-    echo '                             environment variable `RUNAI_NAME`.'
+    echo "-i, --docker_im_name    : Name of image to be uploaded to docker hub. Default from"
+    echo "                             environment variable ``RUNAI_NAME``."
     echo
-    echo '-p, --pwd_hash          : Password hash for sudo access. Can be generated with \"openssl passwd -6\".'
-    echo '                             Default from environment variable `RUNAI_SSH_HASH`.'
-    echo '-j, --jupy_pwd_hash     : Jupyter notebook password hash. Default from environment variable `RUNAI_JUPY_HASH`.'
-    echo '                             Can be generated with:'
-    echo '                             `python -c "from notebook.auth import passwd; print(passwd())"`.'
+    echo "-p, --pwd_hash          : Password hash for sudo access. Can be generated with \"openssl passwd -6\"."
+    echo "                             Default from environment variable ``RUNAI_SSH_HASH``."
+    echo "-j, --jupy_pwd_hash     : Jupyter notebook password hash. Default from environment variable ``RUNAI_JUPY_HASH``."
+    echo "                             Can be generated with:"
+    echo "                             ``python -c \"from notebook.auth import passwd; print(passwd())\"``."
     echo
-    echo '-a, --docker_args       : Pass the any extra arguments onto the docker build (e.g., `--docker_args --no-cache`)'
+    echo "-a, --docker_args       : Pass the any extra arguments onto the docker build (e.g., ``--docker_args --no-cache``)."
+    echo "-V, --vncserver         : Install vncserver."
     echo
 }
 
@@ -78,6 +80,10 @@ while [[ $# -gt 0 ]]; do
         ;;
         -a|--docker_args)
             extra_docker_args="$1"
+            shift
+        ;;
+        -V|--vncserver)
+            vncserver="$1"
             shift
         ;;
         *)
@@ -130,6 +136,7 @@ docker build -t $docker_im_name . \
     --build-arg GROUPS="${groups}" \
     --build-arg GIDS="${gids}" \
     --build-arg JUPY_PWD_HASH="${jupy_pwd_hash}" \
+    --build-arg VNCSERVER="${vncserver}" \
     --network=host \
     ${extra_docker_args}
 

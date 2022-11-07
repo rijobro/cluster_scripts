@@ -84,8 +84,8 @@ echo
 
 export HOME
 HOME=/nfs/home/$(whoami)
-source /nfs/home/$(whoami)/.bashrc
-source /home/$(whoami)/.bashrc
+source "/nfs/home/$(whoami)/.bashrc"
+source "/home/$(whoami)/.bashrc"
 
 # Add any environmental variables
 for env in "${envs[@]}"; do
@@ -96,10 +96,11 @@ done
 cd "$run_dir"
 
 #####################################################################################
-# Start jupyter and sshd
+# Start jupyter, sshd and vnc (if there)
 #####################################################################################
 nohup /usr/sbin/sshd -D -f "/home/$(whoami)/.ssh/sshd_config" -E "/home/$(whoami)/.ssh/sshd.log" &
 nohup jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir=".." > "/home/$(whoami)/.jupyter_notebook.log" 2>&1 &
+vncserver -SecurityTypes None || true
 
 #####################################################################################
 # Execute command

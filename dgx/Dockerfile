@@ -6,7 +6,7 @@ FROM $DOCKER_BASE
 ################################################################################
 # Install misc required packages
 ################################################################################
-RUN apt update && apt upgrade -y && apt install -y openssh-server nano sudo htop
+RUN apt update && apt upgrade -y && DEBIAN_FRONTEND=noninteractive apt install -y openssh-server nano sudo htop firefox
 
 
 ################################################################################
@@ -108,6 +108,21 @@ USER ${UNAME}
 
 # Set up jupyter notebook, w/ blue theme
 RUN jt -t oceans16 -T -N
+
+
+################################################################################
+# Install vncserver (if desired)
+################################################################################
+ARG VNCSERVER
+USER ${UNAME}
+COPY xstartup .
+RUN mkdir ~/.vnc && mv xstartup ~/.vnc
+USER root
+RUN if [ "$VNCSERVER" = true ]; then \
+    echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections && \
+    apt install -y tigervnc-standalone-server xfce4 xfce4-goodies && \
+    chmod +x /home/${UNAME}/.vnc/xstartup \
+; fi
 
 
 ################################################################################
