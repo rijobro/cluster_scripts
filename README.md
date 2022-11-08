@@ -24,10 +24,6 @@ Typical submit command:
 rubmit --job-name rb-train -- "cd <somewhere>\npython training.py --output_model model.pt"
 ```
 
-Without `-- <commands>`, the default is `sleep infinity`, allowing you to connect to the job and do whatever you want.
-
-I've personalised things to my needs but this may be a useful template for others.
-
 ## JADE
 
 Scripts to:
