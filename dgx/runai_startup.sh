@@ -100,7 +100,7 @@ cd "$run_dir"
 #####################################################################################
 nohup /usr/sbin/sshd -D -f "/home/$(whoami)/.ssh/sshd_config" -E "/home/$(whoami)/.ssh/sshd.log" &
 nohup jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir=".." > "/home/$(whoami)/.jupyter_notebook.log" 2>&1 &
-vncserver -SecurityTypes None || true
+vncserver -SecurityTypes None 2>&1 || true
 
 #####################################################################################
 # Execute command

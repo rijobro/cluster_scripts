@@ -6,7 +6,8 @@ FROM $DOCKER_BASE
 ################################################################################
 # Install misc required packages
 ################################################################################
-RUN apt update && apt upgrade -y && DEBIAN_FRONTEND=noninteractive apt install -y openssh-server nano sudo htop firefox
+RUN apt update && apt upgrade -y && \
+    DEBIAN_FRONTEND=noninteractive apt install -y openssh-server nano sudo htop firefox
 
 
 ################################################################################
@@ -93,6 +94,18 @@ EXPOSE 2222
 
 
 ################################################################################
+# Install vncserver (if desired)
+################################################################################
+USER ${UNAME}
+COPY xstartup .
+RUN mkdir ~/.vnc && mv xstartup ~/.vnc
+USER root
+RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections && \
+    apt install -y xfce4 xfce4-goodies tigervnc-standalone-server && \
+    chmod +x /home/${UNAME}/.vnc/xstartup
+
+
+################################################################################
 # Pip install requirements and set up jupyter notebook
 ################################################################################
 USER root
@@ -102,27 +115,13 @@ RUN DEBIAN_FRONTEND=noninteractive apt install ffmpeg libsm6 libxext6 -y && \
     python -m pip install --upgrade -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/requirements-dev.txt && \
     python -m pip install --upgrade -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/docs/requirements.txt && \
     python -m pip install --upgrade -r https://raw.githubusercontent.com/Project-MONAI/tutorials/master/requirements.txt && \
-    python -m pip install --upgrade tensorboardx nvitop moviepy ipywidgets torchsummary scikit-learn jupyterthemes opencv-contrib-python==4.5.5.62
+    python -m pip install --upgrade tensorboardx torch-tb-profiler nvitop moviepy ipywidgets torchsummary scikit-learn \
+        jupyterthemes opencv-contrib-python==4.5.5.62
 
 USER ${UNAME}
 
 # Set up jupyter notebook, w/ blue theme
 RUN jt -t oceans16 -T -N
-
-
-################################################################################
-# Install vncserver (if desired)
-################################################################################
-ARG VNCSERVER
-USER ${UNAME}
-COPY xstartup .
-RUN mkdir ~/.vnc && mv xstartup ~/.vnc
-USER root
-RUN if [ "$VNCSERVER" = true ]; then \
-    echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections && \
-    apt install -y tigervnc-standalone-server xfce4 xfce4-goodies && \
-    chmod +x /home/${UNAME}/.vnc/xstartup \
-; fi
 
 
 ################################################################################
