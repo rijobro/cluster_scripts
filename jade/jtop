@@ -167,7 +167,7 @@ get_bar() {
         n="${SYMBOLS:i:1}"
         if [ "$n" == " " ]; then n="Avail"; fi
         legend="${legend}$(printf "%s: %-5s" "$n" "$val")"
-        if [ "$num_chars" -gt 0 ]; then
+        if [[ "$num_chars" -gt 0 ]]; then
             bar="${bar}$(repeat "${SYMBOLS:i:1}" ${num_chars})"
         fi
     done
@@ -176,7 +176,7 @@ get_bar() {
     legend="$legend Tot: $total"
     bar=$(set_colour "${bar}" "$avail")
     # if less than certain width, don't show legend next to bar
-    if [ "$(tput cols)" -lt "120" ]; then
+    if [[ "$(tput cols)" -lt "120" ]]; then
         legend=""
     fi
 
@@ -217,7 +217,12 @@ diff_time_seconds() {
     local s1=${x1:17:2}
     local s2=${x2:17:2}
     local t
-    t=$(( (y2-y1)*31557600 + (m2-m1) * 2629800 + (d2-d1) * 86400 + (h2-h1) * 3600 + (M2-M1) * 60 + (s2-s1) ))
+    t=$((10#$s2 - 10#$s1))
+    t=$(( t + (10#$M2 - 10#$M1) * 60 ))
+    t=$(( t + (10#$h2 - 10#$h1) * 3600 ))
+    t=$(( t + (10#$d2 - 10#$d1) * 86400 ))
+    t=$(( t + (10#$m2 - 10#$m1) * 2629800 ))
+    t=$(( t + (10#$y2 - 10#$y1) * 31557600 ))
     echo $t
 }
 diff_time() {
