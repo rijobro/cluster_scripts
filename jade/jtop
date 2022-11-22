@@ -193,7 +193,7 @@ gpu_queue() {
     local queue
     queue=$(sacct -aX --format="State%-7, Partition, ReqTRES%-100" | grep PENDING)
     echo "Requested GPUs in queue:"
-    for partition in total devel small big; do
+    for partition in total devel small big long; do
         if [ "$partition" != total ]; then
             grep_partition="$partition"
         fi
@@ -258,7 +258,7 @@ print() {
     title
     for tres in GPU CPU; do
         echo $tres
-        for partition in total devel small big; do
+        for partition in total devel small big long; do
             usage=$(get_usage "$output" $tres $partition)
             echo -e "$(get_bar "$partition" $usage)"
         done
