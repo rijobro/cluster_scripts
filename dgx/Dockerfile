@@ -7,7 +7,7 @@ FROM $DOCKER_BASE
 # Install misc required packages
 ################################################################################
 RUN apt update && apt upgrade -y && \
-    DEBIAN_FRONTEND=noninteractive apt install -y openssh-server nano sudo htop firefox
+    DEBIAN_FRONTEND=noninteractive apt install -y openssh-server nano sudo htop
 
 
 ################################################################################
@@ -49,21 +49,6 @@ RUN echo "export HOME=/home/${UNAME}" >> ~/.bashrc && \
 
 
 ################################################################################
-# Jupyter password
-################################################################################
-ARG JUPY_PWD_HASH
-RUN jupyter notebook --generate-config && \
-    echo "c.NotebookApp.password = '${JUPY_PWD_HASH}'" >> ~/.jupyter/jupyter_notebook_config.py
-
-
-################################################################################
-# Custom bashrc additions
-################################################################################
-RUN git clone https://github.com/rijobro/bash_profile.git && \
-    echo "source bash_profile/rich_bashrc.sh" >> ~/.bashrc
-
-
-################################################################################
 # Set up SSHD to be run as non-sudo user
 ################################################################################
 RUN mkdir -p ~/.ssh && \
@@ -94,34 +79,39 @@ EXPOSE 2222
 
 
 ################################################################################
-# Install vncserver (if desired)
+# Custom bashrc additions
 ################################################################################
-USER ${UNAME}
-COPY xstartup .
-RUN mkdir ~/.vnc && mv xstartup ~/.vnc
+RUN git clone https://github.com/rijobro/bash_profile.git && \
+    echo "source bash_profile/rich_bashrc.sh" >> ~/.bashrc
+
+
+################################################################################
+# Update to python3.11
+################################################################################
 USER root
-RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections && \
-    apt install -y xfce4 xfce4-goodies tigervnc-standalone-server && \
-    chmod +x /home/${UNAME}/.vnc/xstartup
+RUN rm -rf /opt/conda
+USER ${UNAME}
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
+    bash Miniconda3-latest-Linux-x86_64.sh -b && \
+    rm -f Miniconda3-latest-Linux-x86_64.sh && \
+    eval "$(/home/${UNAME}/miniconda3/bin/conda shell.bash hook)" && \
+    conda init && \
+    conda install -c conda-forge python=3.11 -y && \
+    pip install --pre torch --extra-index-url https://download.pytorch.org/whl/nightly/cu117
+ENV PATH=/home/${UNAME}/miniconda3/bin:${PATH}
 
 
 ################################################################################
 # Pip install requirements and set up jupyter notebook
 ################################################################################
-USER root
-# opencv causing problems, manually install dependencies and a version we know to work
-RUN DEBIAN_FRONTEND=noninteractive apt install ffmpeg libsm6 libxext6 -y && \
-    python -m pip install --upgrade -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/requirements.txt && \
-    python -m pip install --upgrade -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/requirements-dev.txt && \
-    python -m pip install --upgrade -r https://raw.githubusercontent.com/Project-MONAI/MONAI/master/docs/requirements.txt && \
-    python -m pip install --upgrade -r https://raw.githubusercontent.com/Project-MONAI/tutorials/master/requirements.txt && \
-    python -m pip install --upgrade tensorboardx torch-tb-profiler nvitop moviepy ipywidgets torchsummary scikit-learn \
-        jupyterthemes opencv-contrib-python==4.5.5.62
-
-USER ${UNAME}
-
-# Set up jupyter notebook, w/ blue theme
-RUN jt -t oceans16 -T -N
+RUN pip install --upgrade numpy scipy scikit-image tensorboard tensorboardx isort black \
+    torch-tb-profiler nvitop moviepy ipywidgets tqdm flake8 cucim cupy jupyterthemes nibabel \
+    ipython
+# Set up jupyter notebook w/ blue theme and set password
+ARG JUPY_PWD_HASH
+RUN jupyter notebook --generate-config && \
+    echo "c.NotebookApp.password = '${JUPY_PWD_HASH}'" >> ~/.jupyter/jupyter_notebook_config.py && \
+    jt -t oceans16 -T -N
 
 
 ################################################################################

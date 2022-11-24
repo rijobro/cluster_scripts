@@ -90,7 +90,7 @@ cp -r "/nfs/home/$(whoami)/.vscode-server" "/home/$(whoami)/.vscode-server"
 
 # Add any environmental variables
 for env in "${envs[@]}"; do
-    export ${env}
+    export "${env}"
     printf "export %s\n" "${env}" >> ~/.bashrc
 done
 

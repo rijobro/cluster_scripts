@@ -200,9 +200,15 @@ script_path=$(realpath "$0")
 script_dir=$(dirname "$script_path")
 cd "$script_dir"
 
+# Delete previously running job if one by same name exists
 if [ "$overwrite" == True ]; then
-    # Delete previously running job if one by same name exists
-    runai delete job "$job_name" > /dev/null 2>&1 || true
+    # use tail +3 to ignore first two lines of output (column headers)
+    for i in $(runai list | tail +3 | awk '{print $1}'); do
+        if [[ "$i" == "$job_name" ]]; then
+            runai delete job "$job_name"
+            sleep 3
+        fi
+    done
 fi
 
 #####################################################################################
