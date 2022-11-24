@@ -73,12 +73,12 @@ print_usage()
     echo "                             will be used, and this port will be printed to the jobs log along with the"
     echo "                             compute hostname. You can then create a tunnel connection"
     echo "                             from your local through the JADE login node and finishing with the compute"
-    echo "                             node, e.g.,: ssh -L <port>:<hostname>:<port> jade."
+    echo "                             node, e.g.,: ssh -L <port>:<hostname>:<port> jade. Default: ${jupyter}"
     echo "-v, --vscode <val>        : If true, start an instance of \`vscode-server\`. A randomly selected free port"
     echo "                             will be used, and this port will be printed to the jobs log along with the"
     echo "                             server token and compute hostname. You can then create a tunnel connection"
     echo "                             from your local through the JADE login node and finishing with the compute"
-    echo "                             node, e.g.,: ssh -L <port>:<hostname>:<port> jade."
+    echo "                             node, e.g.,: ssh -L <port>:<hostname>:<port> jade. Default: ${vscode_server}"
     echo "-c, --conda <val>         : Conda environment to use. If not given, use the \`JADE_CONDA\` env variable."
     echo "                             If \`JADE_CONDA\` does not exist, do not activate a conda environment."
     echo
@@ -285,8 +285,8 @@ if [ "$vscode_server" == True ]; then
     echo -e "\nstarting vscode-server..."
     module load use.dev
     module load code-server &> /dev/null
-    vs_file=/tmp/nohup_jupyter_${RANDOM}.out
-    nohup code-server --accept-server-license-terms --disable-telemetry \
+    vs_file=/tmp/nohup_vscode_${RANDOM}.out
+    code-server --accept-server-license-terms --disable-telemetry  \
         --host 0.0.0.0 --port 8866-8887 serve-local > \$vs_file 2>&1 &
     sleep 10
     echo vscode-server URL: \$(grep -oP '(http://.*)$' \${vs_file})
