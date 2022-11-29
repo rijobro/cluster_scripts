@@ -86,32 +86,39 @@ RUN git clone https://github.com/rijobro/bash_profile.git && \
 
 
 ################################################################################
-# Update to python3.11
+# Get both python 3.9 and 3.11 and get pytorch on both
 ################################################################################
 USER root
 RUN rm -rf /opt/conda
 USER ${UNAME}
+ENV PATH=/home/${UNAME}/miniconda3/bin:${PATH}
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
     bash Miniconda3-latest-Linux-x86_64.sh -b && \
     rm -f Miniconda3-latest-Linux-x86_64.sh && \
     eval "$(/home/${UNAME}/miniconda3/bin/conda shell.bash hook)" && \
     conda init && \
-    conda install -c conda-forge python=3.11 -y && \
+    conda create -n py3.9 python=3.9 -y && \
+    conda activate py3.9 && \
+    pip install torch && \
+    conda create -n py3.11 -c conda-forge python=3.11 -y && \
+    conda activate py3.11 && \
     pip install --pre torch --extra-index-url https://download.pytorch.org/whl/nightly/cu117
-ENV PATH=/home/${UNAME}/miniconda3/bin:${PATH}
 
 
 ################################################################################
 # Pip install requirements and set up jupyter notebook
 ################################################################################
-RUN pip install --upgrade numpy scipy scikit-image tensorboard tensorboardx isort black \
-    torch-tb-profiler nvitop moviepy ipywidgets tqdm flake8 cucim cupy jupyterthemes nibabel \
-    ipython
+RUN for env in "py3.11" "py3.9"; do \
+    /home/${UNAME}/miniconda3/envs/${env}/bin/pip install --upgrade \
+        numpy scipy scikit-image tensorboard tensorboardx isort black \
+        torch-tb-profiler nvitop moviepy ipywidgets tqdm flake8 cucim cupy-cuda11x \
+        jupyterthemes nibabel ipython opencv-python-headless; \
+done
 # Set up jupyter notebook w/ blue theme and set password
 ARG JUPY_PWD_HASH
 RUN jupyter notebook --generate-config && \
     echo "c.NotebookApp.password = '${JUPY_PWD_HASH}'" >> ~/.jupyter/jupyter_notebook_config.py && \
-    jt -t oceans16 -T -N
+    /home/${UNAME}/miniconda3/envs/py3.9/bin/jt -t oceans16 -T -N
 
 
 ################################################################################

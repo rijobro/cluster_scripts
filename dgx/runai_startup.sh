@@ -82,9 +82,9 @@ echo
 # Correct "~" (runai bug), source bashrc, add env vars, cd to run dir
 #####################################################################################
 
-export HOME
-HOME=/nfs/home/$(whoami)
-source "/nfs/home/$(whoami)/.bashrc"
+# export HOME
+# HOME=/nfs/home/$(whoami)
+# source "/nfs/home/$(whoami)/.bashrc"
 source "/home/$(whoami)/.bashrc"
 cp -r "/nfs/home/$(whoami)/.vscode-server" "/home/$(whoami)/.vscode-server"
 
@@ -100,7 +100,7 @@ cd "$run_dir"
 # Start jupyter, sshd and vnc (if there)
 #####################################################################################
 nohup /usr/sbin/sshd -D -f "/home/$(whoami)/.ssh/sshd_config" -E "/home/$(whoami)/.ssh/sshd.log" &
-nohup jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir=".." > "/home/$(whoami)/.jupyter_notebook.log" 2>&1 &
+nohup jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir=".." --config="/home/$(whoami)/.jupyter" > "/home/$(whoami)/.jupyter_notebook.log" 2>&1 &
 vncserver -SecurityTypes None 2>&1 || true
 
 #####################################################################################
