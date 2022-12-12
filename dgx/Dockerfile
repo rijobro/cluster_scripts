@@ -102,7 +102,7 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh &
     pip install torch && \
     conda create -n py3.11 -c conda-forge python=3.11 -y && \
     conda activate py3.11 && \
-    pip install --pre torch --extra-index-url https://download.pytorch.org/whl/nightly/cu117
+    pip install torch
 
 
 ################################################################################
@@ -112,7 +112,7 @@ RUN for env in "py3.11" "py3.9"; do \
     /home/${UNAME}/miniconda3/envs/${env}/bin/pip install --upgrade \
         numpy scipy scikit-image tensorboard tensorboardx isort black \
         torch-tb-profiler nvitop moviepy ipywidgets tqdm flake8 cucim cupy-cuda11x \
-        jupyterthemes nibabel ipython opencv-python-headless; \
+        jupyterthemes nibabel ipython opencv-python-headless wandb; \
 done
 # Set up jupyter notebook w/ blue theme and set password
 ARG JUPY_PWD_HASH

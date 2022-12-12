@@ -14,6 +14,8 @@ env_vars="${RUNAI_ENVS}"
 overwrite=False
 check=True
 follow=True
+conda_env="${RUNAI_CONDA}"
+ssh_port=30069
 
 #####################################################################################
 # Usage
@@ -30,7 +32,8 @@ print_usage()
     echo "                  [-g|--gpu <val>] [-n|--node <val>]"
     echo "                  [-j|--job-name <val>] [-i|--im-name <val>]"
     echo "                  [-e|--env <val>] [-o|--overwrite <val>]"
-    echo "                  [-c|--check <val>] [-- <cmd>]"
+    echo "                  [-c|--check <val>] [-C|--conda <val>]"
+    echo "                  [-s|--ssh] [-- <cmd>]"
     echo
     echo "options without args:"
     echo "-h, --help                : Print this help."
@@ -54,6 +57,9 @@ print_usage()
     echo "                             deleted? Default: ${overwrite}."
     echo "-c, --check <val>        : If true, and cmd is given, get filename and check it exists."
     echo "                             deleted? Default: ${check}."
+    echo "-C, --conda <val>         : Conda environment to use. If not given, use the \`RUNAI_CONDA\` env variable."
+    echo "                             If \`RUNAI_CONDA\` does not exist, do not activate a conda environment."
+    echo "-s, --ssh <val>           : SSH port. Default: ${ssh_port}."
     echo
     echo "NB: if \`-- <cmd>\` not given, \`${default_cmd}\` is used."
 }
@@ -109,6 +115,14 @@ while [[ $# -gt 0 ]]; do
         ;;
         -c|--check)
             check="$1"
+            shift
+        ;;
+        -C|--conda)
+            conda_env=$1
+            shift
+        ;;
+        -s|--ssh)
+            ssh_port=$1
             shift
         ;;
         *)
@@ -168,6 +182,8 @@ echo "Image name: ${im_name}"
 echo "Env vars: ${env_vars_str}"
 echo "Overwrite?: ${overwrite}"
 echo "Check?: ${check}"
+echo "Conda env: ${conda_env}"
+echo "SSH port: ${ssh_port}"
 echo
 echo "Path: ${run_dir}"
 echo "Command: ${cmd}"
@@ -221,7 +237,8 @@ runai submit --name "$job_name" \
     --host-ipc \
     -v "${HOME}":"${HOME}" \
     --backoff-limit 0 \
-    -- "${script_dir}"/runai_startup.sh ${env_cmd} -d "${run_dir}" -- ${cmd}
+    --service-type=nodeport --port "${ssh_port}":2222 \
+    -- "${script_dir}"/runai_startup.sh ${env_cmd} -d "${run_dir}" -C "${conda_env}" -- ${cmd}
 
 #####################################################################################
 # If desired, job status until RUNNING

@@ -7,6 +7,7 @@ set -e # exit on error
 #####################################################################################
 run_dir=$(pwd)
 cmd="sleep infinity"
+conda_env="${RUNAI_CONDA}"
 
 #####################################################################################
 # Usage
@@ -19,7 +20,7 @@ print_usage()
     echo "${0##*/} [OPTIONS(0)...] [ : [OPTIONS(N)...]] [-- <cmd>]"
     echo
     echo "Full syntax:"
-    echo "${0##*/} [-h|--help] [-d|--dir <val>] [-- <cmd>]"
+    echo "${0##*/} [-h|--help] [-d|--dir <val>] [-C|--conda <val>] [-- <cmd>]"
     echo
     echo "options without args:"
     echo "-h, --help                : Print this help."
@@ -28,6 +29,8 @@ print_usage()
     echo "-d, --dir <val>           : Directory to run from. Default: \`pwd\`."
     echo "-e, --env <name=val>      : Environmental variable, given as \"NAME=VAL\"."
     echo "                            Can be used multiple times."
+    echo "-C, --conda <val>         : Conda environment to use. If not given, use the \`RUNAI_CONDA\` env variable."
+    echo "                             If \`RUNAI_CONDA\` does not exist, do not activate a conda environment."
     echo
     echo "NB: if \`-- <cmd>\` not given, \`sleep infinity\` is used."
 }
@@ -58,6 +61,10 @@ while [[ $# -gt 0 ]]; do
             envs+=("$1")
             shift
         ;;
+        -C|--conda)
+            conda_env=$1
+            shift
+        ;;
         *)
             echo -e "\n\nUnknown argument: $key\n\n"
             print_usage
@@ -71,6 +78,7 @@ echo
 echo "Path: ${run_dir}"
 echo "Command: ${cmd}"
 echo "SSH address: $(hostname -i)"
+echo "Conda env: ${conda_env}"
 echo
 echo "Environmental variables:"
 for env in "${envs[@]}"; do
@@ -97,11 +105,22 @@ done
 cd "$run_dir"
 
 #####################################################################################
+# conda (if given)
+#####################################################################################
+if [ "${conda_env}" != "" ]; then
+    echo -e "\nactivating conda environment ${conda_env}..."
+    conda activate ${conda_env}
+fi
+
+
+#####################################################################################
 # Start jupyter, sshd and vnc (if there)
 #####################################################################################
 nohup /usr/sbin/sshd -D -f "/home/$(whoami)/.ssh/sshd_config" -E "/home/$(whoami)/.ssh/sshd.log" &
 nohup jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir=".." --config="/home/$(whoami)/.jupyter" > "/home/$(whoami)/.jupyter_notebook.log" 2>&1 &
-vncserver -SecurityTypes None 2>&1 || true
+if [ -x "$(command -v vncserver)" ]; then
+    vncserver -SecurityTypes None 2>&1 || true
+fi
 
 #####################################################################################
 # Execute command
