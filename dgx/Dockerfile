@@ -99,10 +99,10 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh &
     conda init && \
     conda create -n py3.9 python=3.9 -y && \
     conda activate py3.9 && \
-    pip install torch && \
+    pip install numpy --pre torch --force-reinstall --index-url https://download.pytorch.org/whl/nightly/cu118 && \
     conda create -n py3.11 -c conda-forge python=3.11 -y && \
     conda activate py3.11 && \
-    pip install torch
+    pip install numpy --pre torch --force-reinstall --index-url https://download.pytorch.org/whl/nightly/cu118
 
 
 ################################################################################

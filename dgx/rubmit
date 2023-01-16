@@ -33,7 +33,7 @@ print_usage()
     echo "                  [-j|--job-name <val>] [-i|--im-name <val>]"
     echo "                  [-e|--env <val>] [-o|--overwrite <val>]"
     echo "                  [-c|--check <val>] [-C|--conda <val>]"
-    echo "                  [-s|--ssh] [-- <cmd>]"
+    echo "                  [-s|--ssh] [-p|--port] [-- <cmd>]"
     echo
     echo "options without args:"
     echo "-h, --help                : Print this help."
@@ -55,11 +55,12 @@ print_usage()
     echo "-f, --follow <val>        : After submitting, follow job. Default: ${follow}."
     echo "-o, --overwrite <val>     : If job with same name exists, should it be"
     echo "                             deleted? Default: ${overwrite}."
-    echo "-c, --check <val>        : If true, and cmd is given, get filename and check it exists."
+    echo "-c, --check <val>         : If true, and cmd is given, get filename and check it exists."
     echo "                             deleted? Default: ${check}."
     echo "-C, --conda <val>         : Conda environment to use. If not given, use the \`RUNAI_CONDA\` env variable."
     echo "                             If \`RUNAI_CONDA\` does not exist, do not activate a conda environment."
-    echo "-s, --ssh <val>           : SSH port. Default: ${ssh_port}."
+    echo "-s, --ssh <val>           : Use SSH. Default: True if <cmd> blank, else False."
+    echo "-p, --port <val>          : SSH port. Default: ${ssh_port}."
     echo
     echo "NB: if \`-- <cmd>\` not given, \`${default_cmd}\` is used."
 }
@@ -122,6 +123,10 @@ while [[ $# -gt 0 ]]; do
             shift
         ;;
         -s|--ssh)
+            use_ssh=$1
+            shift
+        ;;
+        -p|--port)
             ssh_port=$1
             shift
         ;;
@@ -136,6 +141,15 @@ done
 #####################################################################################
 # Post-process input arguments
 #####################################################################################
+# if --ssh not used, set the default. True if -- <cmd> not used, else False
+if [ "${use_ssh}" == "" ]; then
+    if [ "${cmd}" == "" ]; then
+        use_ssh=True
+    else
+        use_ssh=False
+    fi
+fi
+
 # default command
 : "${cmd:=$default_cmd}"
 
@@ -183,6 +197,7 @@ echo "Env vars: ${env_vars_str}"
 echo "Overwrite?: ${overwrite}"
 echo "Check?: ${check}"
 echo "Conda env: ${conda_env}"
+echo "Use SSH: ${use_ssh}"
 echo "SSH port: ${ssh_port}"
 echo
 echo "Path: ${run_dir}"
@@ -227,17 +242,23 @@ if [ "$overwrite" == True ]; then
     done
 fi
 
+if [ "$use_ssh" == True ]; then
+    ssh_args="--service-type=nodeport --port ${ssh_port}:2222"
+else
+    ssh_args=""
+fi
+
 #####################################################################################
 # Submit job
 #####################################################################################
-runai submit --name "$job_name" \
+
+runai submit --name "$job_name" ${ssh_args} \
     "$node" \
     -i "$im_name" \
     -g "$gpu" \
     --host-ipc \
     -v "${HOME}":"${HOME}" \
     --backoff-limit 0 \
-    --service-type=nodeport --port "${ssh_port}":2222 \
     -- "${script_dir}"/runai_startup.sh ${env_cmd} -d "${run_dir}" -C "${conda_env}" -- ${cmd}
 
 #####################################################################################
