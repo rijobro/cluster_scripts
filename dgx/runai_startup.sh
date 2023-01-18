@@ -112,6 +112,10 @@ if [ "${conda_env}" != "" ]; then
     conda activate ${conda_env}
 fi
 
+echo "Python version: $(python --version)"
+echo "PyTorch version: $(python -c 'import torch; print(torch.__version__)')"
+echo "Has GPU: $(python -c 'import torch; print(torch.cuda.is_available())')"
+
 
 #####################################################################################
 # Start jupyter, sshd and vnc (if there)
