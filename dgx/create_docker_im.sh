@@ -130,6 +130,8 @@ docker build -t $docker_im_name . \
     --build-arg GROUPS="${groups}" \
     --build-arg GIDS="${gids}" \
     --build-arg JUPY_PWD_HASH="${jupy_pwd_hash}" \
+    --build-arg GIT_NAME="$(git config --get user.name)" \
+    --build-arg GIT_EMAIL="$(git config --get user.email)" \
     --network=host \
     ${extra_docker_args}
 

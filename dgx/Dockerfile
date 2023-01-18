@@ -81,8 +81,13 @@ EXPOSE 2222
 ################################################################################
 # Custom bashrc additions
 ################################################################################
+ARG GIT_NAME
+ARG GIT_EMAIL
 RUN git clone https://github.com/rijobro/bash_profile.git && \
-    echo "source bash_profile/rich_bashrc.sh" >> ~/.bashrc
+    echo "source bash_profile/rich_bashrc.sh" >> ~/.bashrc && \
+    git config --global user.name "${GIT_NAME}" && \
+    git config --global user.email "${GIT_EMAIL}"
+
 
 
 ################################################################################
