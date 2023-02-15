@@ -121,7 +121,7 @@ echo "Has GPU: $(python -c 'import torch; print(torch.cuda.is_available())')"
 # Start jupyter, sshd and vnc (if there)
 #####################################################################################
 nohup /usr/sbin/sshd -D -f "/home/$(whoami)/.ssh/sshd_config" -E "/home/$(whoami)/.ssh/sshd.log" &
-nohup jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir=".." --config="/home/$(whoami)/.jupyter" > "/home/$(whoami)/.jupyter_notebook.log" 2>&1 &
+nohup jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir="/" --config="/home/$(whoami)/.jupyter/jupyter_notebook_config.json" > "/home/$(whoami)/.jupyter_notebook.log" 2>&1 &
 if [ -x "$(command -v vncserver)" ]; then
     vncserver -SecurityTypes None 2>&1 || true
 fi

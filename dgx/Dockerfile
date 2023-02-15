@@ -104,10 +104,10 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh &
     conda init && \
     conda create -n py3.9 python=3.9 -y && \
     conda activate py3.9 && \
-    pip install numpy --pre torch --force-reinstall --index-url https://download.pytorch.org/whl/nightly/cu118 && \
+    pip install numpy torch && \
     conda create -n py3.11 -c conda-forge python=3.11 -y && \
     conda activate py3.11 && \
-    pip install numpy --pre torch --force-reinstall --index-url https://download.pytorch.org/whl/nightly/cu118
+    pip install numpy torch
 
 
 ################################################################################
@@ -117,12 +117,14 @@ RUN for env in "py3.11" "py3.9"; do \
     /home/${UNAME}/miniconda3/envs/${env}/bin/pip install --upgrade \
         numpy scipy scikit-image tensorboard tensorboardx isort black \
         torch-tb-profiler nvitop moviepy ipywidgets tqdm flake8 cucim cupy-cuda11x \
-        jupyterthemes nibabel ipython opencv-python-headless wandb; \
+        jupyterthemes nibabel ipython opencv-python-headless wandb \
+        scikit-learn ipympl einops seaborn runai; \
 done
+
 # Set up jupyter notebook w/ blue theme and set password
 ARG JUPY_PWD_HASH
-RUN jupyter notebook --generate-config && \
-    echo "c.NotebookApp.password = '${JUPY_PWD_HASH}'" >> ~/.jupyter/jupyter_notebook_config.py && \
+RUN mkdir ~/.jupyter && \
+    echo "{\"NotebookApp\": {\"password\": \"${JUPY_PWD_HASH}\"}}" >> ~/.jupyter/jupyter_notebook_config.json && \
     /home/${UNAME}/miniconda3/envs/py3.9/bin/jt -t oceans16 -T -N
 
 

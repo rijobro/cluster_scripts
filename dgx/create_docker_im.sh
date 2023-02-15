@@ -6,7 +6,7 @@ set -e # stop on error
 # Default variables
 #####################################################################################
 docker_push=false
-docker_base="nvcr.io/nvidia/pytorch:22.11-py3"
+docker_base="nvcr.io/nvidia/pytorch:23.01-py3"
 docker_im_name="${RUNAI_NAME}"
 pwd_hash="${RUNAI_SSH_HASH}"
 jupy_pwd_hash="${RUNAI_JUPY_HASH}"
@@ -142,3 +142,6 @@ if [ $docker_push = true ]; then
     docker tag $docker_im_name ${docker_uname}/${docker_im_name}
     docker push ${docker_uname}/${docker_im_name}:latest
 fi
+
+# Terminal notification
+echo -e "\a"
