@@ -84,48 +84,47 @@ EXPOSE 2222
 ARG GIT_NAME
 ARG GIT_EMAIL
 RUN git clone https://github.com/rijobro/bash_profile.git && \
-    echo "source bash_profile/rich_bashrc.sh" >> ~/.bashrc && \
+    echo "source /home/${UNAME}/bash_profile/rich_bashrc.sh" >> ~/.bashrc && \
     git config --global user.name "${GIT_NAME}" && \
     git config --global user.email "${GIT_EMAIL}"
 
 
 
 ################################################################################
-# Get both python 3.9 and 3.11 and get pytorch on both
+# Get python version and install numpy/torch
 ################################################################################
 USER root
 RUN rm -rf /opt/conda
 USER ${UNAME}
+ENV PY_VER="3.11"
+ENV CONDA_NAME="py${PY_VER}-pt2"
 ENV PATH=/home/${UNAME}/miniconda3/bin:${PATH}
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
     bash Miniconda3-latest-Linux-x86_64.sh -b && \
     rm -f Miniconda3-latest-Linux-x86_64.sh && \
     eval "$(/home/${UNAME}/miniconda3/bin/conda shell.bash hook)" && \
     conda init && \
-    conda create -n py3.9 python=3.9 -y && \
-    conda activate py3.9 && \
-    pip install numpy torch && \
-    conda create -n py3.11 -c conda-forge python=3.11 -y && \
-    conda activate py3.11 && \
-    pip install numpy torch
+    conda create -n ${CONDA_NAME} -c conda-forge python=${PY_VER} -y && \
+    conda activate ${CONDA_NAME} && \
+    pip install --upgrade pip && \
+    pip install numpy --pre torch --force-reinstall --index-url https://download.pytorch.org/whl/nightly/cu118 && \
+    echo "export LD_LIBRARY_PATH=/home/rbrown/miniconda3/envs/${CONDA_NAME}/lib/python${PY_VER}/site-packages/torch/lib:$LD_LIBRARY_PATH" >> ~/.bashrc
 
 
 ################################################################################
 # Pip install requirements and set up jupyter notebook
 ################################################################################
-RUN for env in "py3.11" "py3.9"; do \
-    /home/${UNAME}/miniconda3/envs/${env}/bin/pip install --upgrade \
-        numpy scipy scikit-image tensorboard tensorboardx isort black \
-        torch-tb-profiler nvitop moviepy ipywidgets tqdm flake8 cucim cupy-cuda11x \
-        jupyterthemes nibabel ipython opencv-python-headless wandb \
-        scikit-learn ipympl einops seaborn runai; \
-done
+RUN /home/${UNAME}/miniconda3/envs/${CONDA_NAME}/bin/pip install --upgrade \
+    numpy scipy scikit-image tensorboard tensorboardx isort black \
+    torch-tb-profiler nvitop moviepy ipywidgets tqdm flake8 cucim cupy-cuda11x \
+    jupyterthemes nibabel ipython opencv-python-headless wandb \
+    scikit-learn ipympl einops seaborn runai
 
 # Set up jupyter notebook w/ blue theme and set password
 ARG JUPY_PWD_HASH
 RUN mkdir ~/.jupyter && \
     echo "{\"NotebookApp\": {\"password\": \"${JUPY_PWD_HASH}\"}}" >> ~/.jupyter/jupyter_notebook_config.json && \
-    /home/${UNAME}/miniconda3/envs/py3.9/bin/jt -t oceans16 -T -N
+    /home/${UNAME}/miniconda3/envs/${CONDA_NAME}/bin/jt -t oceans16 -T -N
 
 
 ################################################################################
