@@ -7,7 +7,7 @@ FROM $DOCKER_BASE
 # Install misc required packages
 ################################################################################
 RUN apt update && apt upgrade -y && \
-    DEBIAN_FRONTEND=noninteractive apt install -y openssh-server nano sudo htop
+    DEBIAN_FRONTEND=noninteractive apt install -y openssh-server nano sudo htop git
 
 
 ################################################################################
@@ -89,36 +89,34 @@ RUN git clone https://github.com/rijobro/bash_profile.git && \
     git config --global user.email "${GIT_EMAIL}"
 
 
-
 ################################################################################
 # Get python version and install numpy/torch
 ################################################################################
-USER root
-RUN rm -rf /opt/conda
-USER ${UNAME}
-ENV PY_VER="3.11"
-ENV CONDA_NAME="py${PY_VER}-pt2"
-ENV PATH=/home/${UNAME}/miniconda3/bin:${PATH}
+ENV PY_VER="3.10"
+ENV CONDA_NAME="py"
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
     bash Miniconda3-latest-Linux-x86_64.sh -b && \
     rm -f Miniconda3-latest-Linux-x86_64.sh && \
-    eval "$(/home/${UNAME}/miniconda3/bin/conda shell.bash hook)" && \
-    conda init && \
+    /home/${UNAME}/miniconda3/bin/conda init
+ENV PY_EXE=/home/${UNAME}/miniconda3/envs/${CONDA_NAME}/bin/python
+# pytorch2.x
+RUN eval "$(/home/${UNAME}/miniconda3/bin/conda shell.bash hook)" && \
     conda create -n ${CONDA_NAME} -c conda-forge python=${PY_VER} -y && \
-    conda activate ${CONDA_NAME} && \
-    pip install --upgrade pip && \
-    pip install numpy --pre torch --force-reinstall --index-url https://download.pytorch.org/whl/nightly/cu118 && \
-    echo "export LD_LIBRARY_PATH=/home/rbrown/miniconda3/envs/${CONDA_NAME}/lib/python${PY_VER}/site-packages/torch/lib:$LD_LIBRARY_PATH" >> ~/.bashrc
+    ${PY_EXE} -m pip install --upgrade pip && \
+    ${PY_EXE} -m pip install numpy --pre torchvision --index-url https://download.pytorch.org/whl/nightly/cu117 && \
+    echo "export LD_LIBRARY_PATH=/home/${UNAME}/miniconda3/envs/${CONDA_NAME}/lib/python${PY_VER}/site-packages/torch/lib:\$LD_LIBRARY_PATH" >> ~/.bashrc
+# installing torchvision installs torch for us. Seems to cause an error if asked to install both torch and torchvision.
 
 
 ################################################################################
 # Pip install requirements and set up jupyter notebook
 ################################################################################
-RUN /home/${UNAME}/miniconda3/envs/${CONDA_NAME}/bin/pip install --upgrade \
-    numpy scipy scikit-image tensorboard tensorboardx isort black \
-    torch-tb-profiler nvitop moviepy ipywidgets tqdm flake8 cucim cupy-cuda11x \
+RUN ${PY_EXE} -m pip install --upgrade \
+    numpy scipy scikit-image tensorboard tensorboardx isort black black[jupyter] \
+    torch-tb-profiler nvitop moviepy ipywidgets tqdm flake8 cucim \
     jupyterthemes nibabel ipython opencv-python-headless wandb \
-    scikit-learn ipympl einops seaborn runai
+    scikit-learn ipympl einops seaborn runai cython coverage parameterized pylint
+RUN ${PY_EXE} -m pip install 'git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI'
 
 # Set up jupyter notebook w/ blue theme and set password
 ARG JUPY_PWD_HASH
@@ -126,10 +124,26 @@ RUN mkdir ~/.jupyter && \
     echo "{\"NotebookApp\": {\"password\": \"${JUPY_PWD_HASH}\"}}" >> ~/.jupyter/jupyter_notebook_config.json && \
     /home/${UNAME}/miniconda3/envs/${CONDA_NAME}/bin/jt -t oceans16 -T -N
 
+# cupy is finicky. Get libcuda path with "find / -name 'libcuda.so.*'"
+RUN ${PY_EXE} -m pip install cupy-cuda12x
+USER root
+RUN libcuda=$(find / -name 'libcuda.so.1') && \
+    echo libcuda: $libcuda && \
+    echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:$(dirname $libcuda)" >> /home/${UNAME}/.bashrc
+USER ${UNAME}
+
+
+################################################################################
+# Test
+################################################################################
+COPY test_image.sh .
+RUN bash test_image.sh && rm test_image.sh
+
 
 ################################################################################
 # Clear apt install cache (smaller image for docker push)
 ################################################################################
 USER root
+
 RUN rm -rf /var/lib/apt/lists/*
 USER ${UNAME}

@@ -60,7 +60,7 @@ print_usage()
     echo "-C, --conda <val>         : Conda environment to use. If not given, use the \`RUNAI_CONDA\` env variable."
     echo "                             If \`RUNAI_CONDA\` does not exist, do not activate a conda environment."
     echo "-s, --ssh <val>           : Use SSH. Default: True if <cmd> blank, else False."
-    echo "-p, --port <val>          : SSH port. Default: ${ssh_port}."
+    echo "-p, --port <val>          : SSH port. Will use next available after given. Default: ${ssh_port}."
     echo
     echo "NB: if \`-- <cmd>\` not given, \`${default_cmd}\` is used."
 }
