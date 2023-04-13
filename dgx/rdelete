@@ -1,0 +1,62 @@
+#!/bin/bash
+
+set -e # exit on error
+
+
+#####################################################################################
+# Usage
+#####################################################################################
+print_usage()
+{
+    echo "Delete runai jobs that follow pattern (using grep). Use \"\" for all."
+    echo
+    echo
+    echo "Full syntax:"
+    echo "${0##*/} [-h|--help] pattern"
+    echo
+    echo "options without args:"
+    echo "-h, --help                : Print this help."
+    echo
+}
+
+
+#####################################################################################
+# Parse input arguments
+#####################################################################################
+if [[ $# -eq 0 ]]; then
+    echo -e "\n\nNo pattern given!\n\n"
+    print_usage
+    exit 1
+fi
+
+while [[ $# -gt 0 ]]; do
+    arg="$1"
+    shift
+    case $arg in
+        -h|--help)
+            print_usage
+            exit 0
+        ;;
+        *)
+            if [ "$#" -eq 0 ]; then
+                cmd="$arg"
+                break
+            else
+                echo -e "\n\nUnknown argument: $arg\n\n"
+                print_usage
+                exit 1
+            fi
+        ;;
+    esac
+done
+
+
+# Print vals
+echo
+echo "Deleting jobs with pattern: \"$cmd\""
+echo
+
+
+for job in $(runai list | tail +3 | awk '{print $1}' | grep "$cmd"); do
+    runai delete job "$job"
+done
