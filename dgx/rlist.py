@@ -55,27 +55,44 @@ class RList:
         data = [re.split(r"\s{2,}", r) for r in rows]
         return pd.DataFrame(data[1:], columns=data[0])
 
-    def get_envs(self, job: str) -> dict:
+    def get_envs(self, job: str) -> None:
         """Get run parameters for a single running job.
 
         Args:
             job: job to search.
         """
         res = RList.run_cmd(f"runai exec {job} cat {self.path}", check=False, stderr_ok=True)
-        return json.loads(res) if len(res) > 0 else {}
+        if len(res) > 0:
+            out_fname = os.path.expanduser(f"~/.{job}.json")
+            with open(out_fname, "w", encoding="utf-8") as out_file:
+                out_file.write(res)
 
-    def get_envs_for_all_running_jobs(self, jobs) -> dict:
-        """Get run parameters for all running jobs.
+    def get_envs_for_all_running_jobs(self, jobs: pd.DataFrame) -> None:
+        """Copy the file containing run parameters for all running jobs to ~/.
 
         Args:
-            jobs: names of running jobs to search.
+            df: pandas data frame containing jobs.
         """
         nproc = min(10, cpu_count(), len(jobs))
         with Pool(nproc) as p:
-            results = p.map(self.get_envs, jobs)
+            p.map(self.get_envs, jobs.NAME)
             p.close()
             p.join()
-        return dict(zip(jobs, results))
+
+    def get_envs_for_all_jobs(self, df: pd.DataFrame) -> dict:
+        """Search locally for ~/.<job_name>.json to get run parameters. They should have already been copied across by
+        ``get_envs_for_all_running_jobs``.
+
+        Args:
+            df: pandas data frame containing jobs.
+        """
+        out = {}
+        for name in df.NAME:
+            fname = os.path.expanduser(f"~/.{name}.json")
+            if os.path.isfile(fname):
+                with open(fname, "r", encoding="utf-8") as file:
+                    out[name] = json.load(file)
+        return out
 
     def get_table(self) -> pd.DataFrame:
         """Run ``runai list``, and optionally search running jobs for extra environment variables to report."""
@@ -87,8 +104,8 @@ class RList:
         df.rename(columns={"GPUs Allocated (Requested)": "GPUs"}, inplace=True)
 
         if self.extras:
-            running = df[df.STATUS == "Running"]
-            res = self.get_envs_for_all_running_jobs(running.NAME)
+            self.get_envs_for_all_running_jobs(df[df.STATUS == "Running"])
+            res = self.get_envs_for_all_jobs(df)
             new_cols = [i for v in res.values() for i in v.keys()]
             df = df.assign(**{n: "" for n in new_cols})
             for job_name, v in res.items():
@@ -96,7 +113,6 @@ class RList:
                     df.loc[df.NAME == job_name, col_name] = val
         return df
 
-    # @contextmanager
     def timed_loop(self):
         """Infinite loop performing a command. If elapsed time is less than ``self.loop`` then wait."""
         try:
@@ -108,6 +124,7 @@ class RList:
                 t_wait = self.loop - t_elapsed
                 if t_wait > 0:
                     time.sleep(t_wait)
+        # Gracefully exit on keyboard interrupt
         except KeyboardInterrupt:
             pass
 
@@ -125,11 +142,7 @@ class RList:
         print(f"    File     : {self.path}.")
         print(f"    Loop (s) : {self.loop}.")
         print(f"    Updated  : {datetime.now():%H:%M:%S%z %d/%m/%Y}\n")
-        print(
-            df.to_string(
-                index=False,
-            )
-        )
+        print(df.to_markdown(index=False))
 
     def run(self):
         """Main method."""

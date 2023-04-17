@@ -172,8 +172,6 @@ if [ "${job_name}" == "" ]; then
         echo "Job name not given, default command used. Please set \`RUNAI_NAME\` for default job name."
         exit 1
     fi
-    # max job name length
-    # job_name=${job_name:0:26}
 fi
 
 if [ "${env_vars}" != "" ]; then
@@ -241,6 +239,9 @@ if [ "$overwrite" == True ]; then
         fi
     done
 fi
+# if json files from previous run, delete
+param_file=~/.${job_name}.json
+[ -f $param_file ] && rm $param_file
 
 if [ "$use_ssh" == True ]; then
     ssh_args="--service-type=nodeport --port ${ssh_port}:2222"
