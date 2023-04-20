@@ -65,10 +65,11 @@ Isort=-1
 Black=-1
 Flake8=-1
 Pylint=-1
+Mypy=-1
 
 function print_results {
     all_good=true
-    for name in Isort Black Flake8 Pylint; do
+    for name in Isort Black Flake8 Pylint Mypy; do
         val=${!name}
         echo -n "$name: "
         if [ $val -eq -1 ]; then
@@ -81,6 +82,7 @@ function print_results {
         fi
         echo ${noColour}
     done
+    echo
     [[ $all_good = true ]] || exit 1
 }
 
@@ -112,7 +114,7 @@ function check_dependencies() {
     done
     if [ $all_good = false ]; then exit 1; fi
 }
-check_dependencies isort black flake8 pylint
+check_dependencies isort black flake8 pylint mypy
 
 #######################################################################################################################
 # isort
@@ -135,11 +137,17 @@ check flake8 "${cmd}"
 Flake8=$?
 
 #######################################################################################################################
+# mypy
+#######################################################################################################################
+cmd="mypy ."
+check mypy "${cmd}"
+Mypy=$?
+
+#######################################################################################################################
 # pylint
 #######################################################################################################################
 all_files=$(find . -type f -name "*.py")
 ignores="C0103"
-#"C0103,R0913,R0912,R0903,R0914,W0212,R1702,R0801,R0902,R0401"
 cmd="pylint --max-line-length 120 --disable=$ignores ${all_files}"
 check pylint "${cmd}"
 Pylint=$?

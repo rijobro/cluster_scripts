@@ -240,7 +240,7 @@ if [ "$overwrite" == True ]; then
     done
 fi
 # if json files from previous run, delete
-param_file=~/.${job_name}.json
+param_file=~/Documents/Code/InstaVec/.progress/${job_name}.json
 [ -f $param_file ] && rm $param_file
 
 if [ "$use_ssh" == True ]; then

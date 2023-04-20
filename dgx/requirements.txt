@@ -4,3 +4,5 @@ isort
 black
 flake8
 pylint
+pandas-stubs
+mypy

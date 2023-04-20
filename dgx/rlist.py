@@ -7,7 +7,6 @@ import os
 import re
 import time
 from datetime import datetime
-from multiprocessing import Pool, cpu_count
 from subprocess import run
 
 import pandas as pd
@@ -18,14 +17,12 @@ class RList:
     Wrapper around ``runai list``, printing extra info if desired.
 
     Args:
-        extra: print extra info?
         path: path in job (same path for all jobs) with extra info saved as json file
         loop: if not ``None``, loop every x seconds
         drop: columns from the original output to drop.
     """
 
-    def __init__(self, extras: bool, path: str, loop: int | None, drop: list[str] | None) -> None:
-        self.extras = extras
+    def __init__(self, path: str, loop: int | None, drop: list[str] | None) -> None:
         self.path = path
         self.loop = loop
         self.drop = drop
@@ -51,33 +48,20 @@ class RList:
         out = RList.run_cmd("runai list")
         # split at new lines, remove first and last lines
         rows = out.split("\n")[1:-1]
-        # split columns anywhere there are two or multiple spaces
-        data = [re.split(r"\s{2,}", r) for r in rows]
-        return pd.DataFrame(data[1:], columns=data[0])
-
-    def get_envs(self, job: str) -> None:
-        """Get run parameters for a single running job.
-
-        Args:
-            job: job to search.
-        """
-        res = RList.run_cmd(f"runai exec {job} cat {self.path}", check=False, stderr_ok=True)
-        if len(res) > 0:
-            out_fname = os.path.expanduser(f"~/.{job}.json")
-            with open(out_fname, "w", encoding="utf-8") as out_file:
-                out_file.write(res)
-
-    def get_envs_for_all_running_jobs(self, jobs: pd.DataFrame) -> None:
-        """Copy the file containing run parameters for all running jobs to ~/.
-
-        Args:
-            df: pandas data frame containing jobs.
-        """
-        nproc = min(10, cpu_count(), len(jobs))
-        with Pool(nproc) as p:
-            p.map(self.get_envs, jobs.NAME)
-            p.close()
-            p.join()
+        # split header and data
+        header_w_spaces, *data = rows
+        # get all points in the header with 2 or more spaces (or to end of line for last column)
+        pattern = r"(.+?)(\s{2,}|$)"
+        matches = list(re.finditer(pattern, header_w_spaces))
+        # get headers without spaces
+        header = [m.group(1) for m in matches]
+        # extract the indices of the start and end of the columns. set last to be end of line (-1)
+        idxs = [[m.start(), m.end() - 1] for m in matches]
+        idxs[-1][-1] = -1
+        # extract the stringe that lie in this range for all rows. use " ".join() to
+        # replace multiple spaces with single.
+        out_data = [[" ".join(d[start:end].split()) for (start, end) in idxs] for d in data]
+        return pd.DataFrame(out_data, columns=header)
 
     def get_envs_for_all_jobs(self, df: pd.DataFrame) -> dict:
         """Search locally for ~/.<job_name>.json to get run parameters. They should have already been copied across by
@@ -88,7 +72,7 @@ class RList:
         """
         out = {}
         for name in df.NAME:
-            fname = os.path.expanduser(f"~/.{name}.json")
+            fname = os.path.expanduser(f"{self.path}/{name}.json")
             if os.path.isfile(fname):
                 with open(fname, "r", encoding="utf-8") as file:
                     out[name] = json.load(file)
@@ -103,14 +87,13 @@ class RList:
         # rename others
         df.rename(columns={"GPUs Allocated (Requested)": "GPUs"}, inplace=True)
 
-        if self.extras:
-            self.get_envs_for_all_running_jobs(df[df.STATUS == "Running"])
-            res = self.get_envs_for_all_jobs(df)
-            new_cols = [i for v in res.values() for i in v.keys()]
-            df = df.assign(**{n: "" for n in new_cols})
-            for job_name, v in res.items():
-                for col_name, val in v.items():
-                    df.loc[df.NAME == job_name, col_name] = val
+        # get extra info
+        res = self.get_envs_for_all_jobs(df)
+        new_cols = [i for v in res.values() for i in v.keys()]
+        df = df.assign(**{n: "" for n in new_cols})
+        for job_name, v in res.items():
+            for col_name, val in v.items():
+                df.loc[df.NAME == job_name, col_name] = val
         return df
 
     def timed_loop(self):
@@ -138,8 +121,7 @@ class RList:
         if clear:
             _ = os.system("cls" if os.name == "nt" else "clear")
         print("improved runai list.")
-        print(f"    Extras   : {self.extras}.")
-        print(f"    File     : {self.path}.")
+        print(f"    Path     : {self.path}.")
         print(f"    Loop (s) : {self.loop}.")
         print(f"    Updated  : {datetime.now():%H:%M:%S%z %d/%m/%Y}\n")
         print(df.to_markdown(index=False))
@@ -179,12 +161,12 @@ def to_list(v: str) -> list[str]:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-e", "--extras", help="Get extra variables from jobs.", default=True, type=to_bool)
     parser.add_argument(
         "-p",
         "--path",
-        help="Path to check in running jobs for extra variables.",
-        default="/home/rbrown/.instavec_vars.json",
+        help="Path to check for files containing run parameters. E.g., if path is ``~/progress``, then a job called "
+        "``test`` will have info in ``~/progress/test.json``.",
+        default="/nfs/home/rbrown/Documents/Code/InstaVec/.progress",
         type=str,
     )
     parser.add_argument("-l", "--loop", help="Loop every n seconds.", type=int)
