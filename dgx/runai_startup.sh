@@ -31,6 +31,8 @@ print_usage()
     echo "                            Can be used multiple times."
     echo "-C, --conda <val>         : Conda environment to use. If not given, use the \`RUNAI_CONDA\` env variable."
     echo "                             If \`RUNAI_CONDA\` does not exist, do not activate a conda environment."
+    echo "-l, --local <val>         : Local packages to pip install (\`pip install -e <dir>\`). "
+    echo "                            Can be used multiple times"
     echo
     echo "NB: if \`-- <cmd>\` not given, \`sleep infinity\` is used."
 }
@@ -61,6 +63,11 @@ while [[ $# -gt 0 ]]; do
             envs+=("$1")
             shift
         ;;
+        -l|--local)
+            if [[ -z "${local_pips}" ]]; then local_pips=(); fi
+            local_pips+=("$1")
+            shift
+        ;;
         -C|--conda)
             conda_env=$1
             shift
@@ -85,24 +92,19 @@ for env in "${envs[@]}"; do
     echo -e "\t${env}"
 done
 echo
+echo "To locally pip install:"
+for local_pip in "${local_pips[@]}"; do
+    echo -e "\t${local_pip}"
+done
+echo
 
 #####################################################################################
-# Correct "~" (runai bug), source bashrc, add env vars, cd to run dir
+# source bashrc, copy vscode options across
 #####################################################################################
 
-# export HOME
-# HOME=/nfs/home/$(whoami)
-# source "/nfs/home/$(whoami)/.bashrc"
+echo -e "\nsourcing bashrc..."
 source "/home/$(whoami)/.bashrc"
 cp -r "/nfs/home/$(whoami)/.vscode-server" "/home/$(whoami)/.vscode-server"
-
-# Add any environmental variables
-for env in "${envs[@]}"; do
-    export "${env}"
-    printf "export %s\n" "${env}" >> ~/.bashrc
-done
-
-cd "$run_dir"
 
 #####################################################################################
 # conda (if given)
@@ -116,13 +118,34 @@ echo "Python version: $(python --version)"
 echo "PyTorch version: $(python -c 'import torch; print(torch.__version__)')"
 echo "Has GPU: $(python -c 'import torch; print(torch.cuda.is_available())')"
 
+#####################################################################################
+# add env vars, local pip install, cd to run dir
+#####################################################################################
+
+# Add any environmental variables
+for env in "${envs[@]}"; do
+    export "${env}"
+    printf "export %s\n" "${env}" >> ~/.bashrc
+done
+
+# local pip installs
+for local_pip in "${local_pips[@]}"; do
+    pip install -e "$local_pip"
+done
+
+cd "$run_dir"
 
 #####################################################################################
-# Start jupyter, sshd and vnc (if there)
+# Start sshd, jupyter and vnc (if there)
 #####################################################################################
+echo -e "\nStarting SSH server..."
 nohup /usr/sbin/sshd -D -f "/home/$(whoami)/.ssh/sshd_config" -E "/home/$(whoami)/.ssh/sshd.log" &
+
+echo -e "\nStarting jupyter server..."
 nohup jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir="/" --config="/home/$(whoami)/.jupyter/jupyter_notebook_config.json" > "/home/$(whoami)/.jupyter_notebook.log" 2>&1 &
+
 if [ -x "$(command -v vncserver)" ]; then
+    echo -e "\nStarting vncserver..."
     vncserver -SecurityTypes None 2>&1 || true
 fi
 

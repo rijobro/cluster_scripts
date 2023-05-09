@@ -11,6 +11,7 @@ gpu=1
 im_name="${RUNAI_IM}"
 default_job_name="${RUNAI_NAME}"
 env_vars="${RUNAI_ENVS}"
+local_pip_vars="${RUNAI_LOCAL_PIP}"
 overwrite=False
 check=True
 follow=True
@@ -52,6 +53,8 @@ print_usage()
     echo "-e, --env <val>           : Comma-separated list of variables to copy"
     echo "                             from dgx to job. Default from"
     echo "                             environment variable \`RUNAI_ENVS\`."
+    echo "-l, --local <val>         : Comma-separated list of directories to pip install"
+    echo "                             inside job. Default from environment variable \`RUNAI_LOCAL_PIP\`."
     echo "-f, --follow <val>        : After submitting, follow job. Default: ${follow}."
     echo "-o, --overwrite <val>     : If job with same name exists, should it be"
     echo "                             deleted? Default: ${overwrite}."
@@ -108,6 +111,10 @@ while [[ $# -gt 0 ]]; do
         ;;
         -e|--env)
             env_vars="$1"
+            shift
+        ;;
+        -l|--local)
+            local_pip_vars="$1"
             shift
         ;;
         -o|--overwrite)
@@ -174,6 +181,7 @@ if [ "${job_name}" == "" ]; then
     fi
 fi
 
+# get env vars and convert into "-e <KEY1>=<VALUE1> -e <KEY2>=<VALUE2>..."
 if [ "${env_vars}" != "" ]; then
     # remove spaces from env list
     env_vars_str="${env_vars//[[:blank:]]/}"
@@ -182,6 +190,18 @@ if [ "${env_vars}" != "" ]; then
     env_cmd=""
     for i in "${env_vars[@]}"; do
         env_cmd="${env_cmd} -e $i=${!i}"
+    done
+fi
+
+# get local pip directories and convert to "-l <DIR1> -l <DIR2>..."
+if [ "${local_pip_vars}" != "" ]; then
+    # remove spaces from env list
+    local_pip_vars_str="${local_pip_vars//[[:blank:]]/}"
+    # split at commas and convert to array
+    local_pip_vars=($(echo $local_pip_vars_str | tr "," "\n"))
+    local_pip_cmd=""
+    for i in "${local_pip_vars[@]}"; do
+        local_pip_cmd="${local_pip_cmd} -l $i"
     done
 fi
 
@@ -260,7 +280,7 @@ runai submit --name "$job_name" ${ssh_args} \
     --host-ipc \
     -v "${HOME}":"${HOME}" \
     --backoff-limit 0 \
-    -- "${script_dir}"/runai_startup.sh ${env_cmd} -d "${run_dir}" -C "${conda_env}" -- ${cmd}
+    -- "${script_dir}"/runai_startup.sh ${env_cmd} ${local_pip_cmd} -d "${run_dir}" -C "${conda_env}" -- ${cmd}
 
 #####################################################################################
 # If desired, job status until RUNNING
