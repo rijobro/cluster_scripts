@@ -7,7 +7,6 @@ set -e # exit on error
 #####################################################################################
 run_dir=$(pwd)
 cmd="sleep infinity"
-conda_env="${RUNAI_CONDA}"
 
 #####################################################################################
 # Usage
@@ -20,7 +19,7 @@ print_usage()
     echo "${0##*/} [OPTIONS(0)...] [ : [OPTIONS(N)...]] [-- <cmd>]"
     echo
     echo "Full syntax:"
-    echo "${0##*/} [-h|--help] [-d|--dir <val>] [-C|--conda <val>] [-- <cmd>]"
+    echo "${0##*/} [-h|--help] [-d|--dir <val>] [-e|--env <val>] [-l|--local <val>] [-- <cmd>]"
     echo
     echo "options without args:"
     echo "-h, --help                : Print this help."
@@ -29,8 +28,6 @@ print_usage()
     echo "-d, --dir <val>           : Directory to run from. Default: \`pwd\`."
     echo "-e, --env <name=val>      : Environmental variable, given as \"NAME=VAL\"."
     echo "                            Can be used multiple times."
-    echo "-C, --conda <val>         : Conda environment to use. If not given, use the \`RUNAI_CONDA\` env variable."
-    echo "                             If \`RUNAI_CONDA\` does not exist, do not activate a conda environment."
     echo "-l, --local <val>         : Local packages to pip install (\`pip install -e <dir>\`). "
     echo "                            Can be used multiple times"
     echo
@@ -68,10 +65,6 @@ while [[ $# -gt 0 ]]; do
             local_pips+=("$1")
             shift
         ;;
-        -C|--conda)
-            conda_env=$1
-            shift
-        ;;
         *)
             echo -e "\n\nUnknown argument: $key\n\n"
             print_usage
@@ -85,7 +78,6 @@ echo
 echo "Path: ${run_dir}"
 echo "Command: ${cmd}"
 echo "SSH address: $(hostname -i)"
-echo "Conda env: ${conda_env}"
 echo
 echo "Environmental variables:"
 for env in "${envs[@]}"; do
@@ -99,29 +91,13 @@ done
 echo
 
 #####################################################################################
-# source bashrc, copy vscode options across
+# copy vscode options across
 #####################################################################################
-
-echo -e "\nsourcing bashrc..."
-source "/home/$(whoami)/.bashrc"
 cp -r "/nfs/home/$(whoami)/.vscode-server" "/home/$(whoami)/.vscode-server"
-
-#####################################################################################
-# conda (if given)
-#####################################################################################
-if [ "${conda_env}" != "" ]; then
-    echo -e "\nactivating conda environment ${conda_env}..."
-    conda activate ${conda_env}
-fi
-
-echo "Python version: $(python --version)"
-echo "PyTorch version: $(python -c 'import torch; print(torch.__version__)')"
-echo "Has GPU: $(python -c 'import torch; print(torch.cuda.is_available())')"
 
 #####################################################################################
 # add env vars, local pip install, cd to run dir
 #####################################################################################
-
 # Add any environmental variables
 for env in "${envs[@]}"; do
     export "${env}"
@@ -134,20 +110,6 @@ for local_pip in "${local_pips[@]}"; do
 done
 
 cd "$run_dir"
-
-#####################################################################################
-# Start sshd, jupyter and vnc (if there)
-#####################################################################################
-echo -e "\nStarting SSH server..."
-nohup /usr/sbin/sshd -D -f "/home/$(whoami)/.ssh/sshd_config" -E "/home/$(whoami)/.ssh/sshd.log" &
-
-echo -e "\nStarting jupyter server..."
-nohup jupyter notebook --ip 0.0.0.0 --no-browser --notebook-dir="/" --config="/home/$(whoami)/.jupyter/jupyter_notebook_config.json" > "/home/$(whoami)/.jupyter_notebook.log" 2>&1 &
-
-if [ -x "$(command -v vncserver)" ]; then
-    echo -e "\nStarting vncserver..."
-    vncserver -SecurityTypes None 2>&1 || true
-fi
 
 #####################################################################################
 # Execute command

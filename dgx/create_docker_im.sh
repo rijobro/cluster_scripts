@@ -6,10 +6,12 @@ set -e # stop on error
 # Default variables
 #####################################################################################
 docker_push=false
-docker_base="nvcr.io/nvidia/pytorch:23.03-py3"
+docker_base="nvcr.io/nvidia/pytorch:23.04-py3"
 docker_im_name="${RUNAI_NAME}"
 pwd_hash="${RUNAI_SSH_HASH}"
 jupy_pwd_hash="${RUNAI_JUPY_HASH}"
+test_image=true
+py_ver="3.10"
 
 ################################################################################
 # Usage
@@ -23,26 +25,28 @@ print_usage()
     echo "${0##*/} [OPTIONS(0)...] [ : [OPTIONS(N)...]]"
     echo
     echo "Full syntax:"
-    echo "${0##*/} [-h|--help] [-d|--docker_push]"
+    echo "${0##*/} [-h|--help] [-d|--docker_push <val> ] [-t|--test_image <val>]"
     echo "                  [-b|--docker_base <val>] [-i|--docker_im_name]"
     echo "                  [-p|--pwd_hash <val] [-j|--jupy_pwd_hash <val>]"
     echo "                  [-a|--docker_args <val>]"
     echo
-    echo "options:"
-    echo "-h, --help              : Print this help."
+    echo "options with no args:"
+    echo "-h, --help                   : Print this help."
     echo
-    echo "-d, --docker_push       : Push the created image to dockerhub."
-    echo "-b, --docker_base       : Base docker image. Default: ${docker_base}."
-    echo "-i, --docker_im_name    : Name of image to be uploaded to docker hub. Default from"
-    echo "                             environment variable ``RUNAI_NAME``."
+    echo "options with args:"
+    echo "-d, --docker_push <val>      : Push the created image to dockerhub. Default: ${docker_push}"
+    echo "-t, --test_image <val>       : Test image after creation. Default: ${test_image}"
+    echo "-b, --docker_base <val>      : Base docker image. Default: ${docker_base}."
+    echo "-i, --docker_im_name <val>   : Name of image to be uploaded to docker hub. Default from"
+    echo "                                environment variable ``RUNAI_NAME``."
+    echo "-P, --py_ver <val>           : Python version. Default: ${py_ver}"
     echo
-    echo "-p, --pwd_hash          : Password hash for sudo access. Can be generated with \"openssl passwd -6\"."
-    echo "                             Default from environment variable ``RUNAI_SSH_HASH``."
-    echo "-j, --jupy_pwd_hash     : Jupyter notebook password hash. Default from environment variable ``RUNAI_JUPY_HASH``."
-    echo "                             Can be generated with:"
-    echo "                             ``python -c \"from notebook.auth import passwd; print(passwd())\"``."
-    echo
-    echo "-a, --docker_args       : Pass the any extra arguments onto the docker build (e.g., ``--docker_args --no-cache``)."
+    echo "-p, --pwd_hash <val>         : Password hash for sudo access. Can be generated with \"openssl passwd -6\"."
+    echo "                                Default from environment variable ``RUNAI_SSH_HASH``."
+    echo "-j, --jupy_pwd_hash <val>    : Jupyter notebook password hash. Default from environment variable ``RUNAI_JUPY_HASH``."
+    echo "                               Can be generated with:"
+    echo "                               ``python -c \"from notebook.auth import passwd; print(passwd())\"``."
+    echo "-a, --docker_args <val>      : Pass the any extra arguments onto the docker build (e.g., ``--docker_args --no-cache``)."
     echo
 }
 
@@ -58,7 +62,12 @@ while [[ $# -gt 0 ]]; do
             exit 0
         ;;
         -d|--docker_push)
-            docker_push=true
+            docker_push="$1"
+            shift
+        ;;
+        -t|--test_image)
+            test_image="$1"
+            shift
         ;;
         -b|--docker_base)
             docker_base="$1"
@@ -66,6 +75,10 @@ while [[ $# -gt 0 ]]; do
         ;;
         -i|--docker_im_name)
             docker_im_name="$1"
+            shift
+        ;;
+        -P|--py_ver)
+            py_ver="$1"
             shift
         ;;
         -p|--pwd_hash)
@@ -102,6 +115,10 @@ echo
 echo "Base docker image: ${docker_base}"
 echo "Generated image name: ${docker_im_name}"
 echo "Docker username: ${docker_uname}"
+echo "Docker push: ${docker_push}"
+echo "Test image: ${test_image}"
+echo "Extra docker args: ${extra_docker_args}"
+echo "Python version: ${py_ver}"
 echo
 
 # cleanup
@@ -132,8 +149,16 @@ docker build -t $docker_im_name . \
     --build-arg JUPY_PWD_HASH="${jupy_pwd_hash}" \
     --build-arg GIT_NAME="$(git config --get user.name)" \
     --build-arg GIT_EMAIL="$(git config --get user.email)" \
+    --build-arg PY_VER="${py_ver}" \
     --network=host \
     ${extra_docker_args}
+
+#####################################################################################
+# Test image
+#####################################################################################
+if [ $test_image = true ]; then
+    docker run -t --rm -v ./test_image.sh:/test_image.sh rb-monai bash "/test_image.sh"
+fi
 
 #####################################################################################
 # Push image
@@ -142,6 +167,5 @@ if [ $docker_push = true ]; then
     docker tag $docker_im_name ${docker_uname}/${docker_im_name}
     docker push ${docker_uname}/${docker_im_name}:latest
 fi
-
 # Terminal notification
 echo -e "\a"
