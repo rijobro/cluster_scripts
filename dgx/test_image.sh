@@ -40,7 +40,7 @@ processes=$(ps x)
 
 # check sshd is running
 echo -e "\n\n${separator}${blue}Checking SSHD is running...${noColour}"
-echo $processes | grep /usr/sbin/sshd >/dev/null || exit 1
+echo $processes | grep /usr/sbin/sshd >/dev/null || (cat /home/$(whoami)/.ssh/sshd.log && exit 1)
 echo -e "${green}SSHD is running!${noColour}"
 
 # check jupyter is running
@@ -48,29 +48,42 @@ echo -e "\n\n${separator}${blue}Checking jupyter is running...${noColour}"
 echo $processes | grep jupyter >/dev/null || exit 1
 echo -e "${green}jupyter is running!${noColour}"
 
+# check conda path
+echo -e "\n\n${separator}${blue}Checking conda path...${noColour}"
+res=$(which conda)
+[[ $res == "/home/$(whoami)/miniconda/bin/conda" ]] || (echo "conda path: $res" && exit 1)
+echo -e "${green}conda path is good!${noColour}"
+
+# check correct env is activated
+echo -e "\n\n${separator}${blue}Checking conda env...${noColour}"
+[[ $CONDA_DEFAULT_ENV == py ]] || (echo "conda env: $CONDA_DEFAULT_ENV" && exit 1)
+echo -e "${green}conda env is good!${noColour}"
+
+cat .bashrc
+exit 1
+
 # check python path
 echo -e "\n\n${separator}${blue}Checking python path...${noColour}"
-[[ $(which python) == "/usr/bin/python" ]] || exit 1
-ls -l /usr/bin/python | grep /etc/alternatives/python >/dev/null || exit 1
-ls -l /etc/alternatives/python | grep /dgx/miniconda/bin/python >/dev/null || exit 1
+res=$(which python)
+[[ $res == "/home/$(whoami)/miniconda/envs/py/bin/python" ]] || (echo "python path: $res" && exit 1)
 echo -e "${green}python is good!${noColour}"
 
 # check pip path
 echo -e "\n\n${separator}${blue}Checking pip path...${noColour}"
-[[ $(which pip) == "/usr/bin/pip" ]] || exit 1
-ls -l /usr/bin/pip | grep /etc/alternatives/pip >/dev/null || exit 1
-ls -l /etc/alternatives/pip | grep /dgx/miniconda/bin/pip >/dev/null || exit 1
+res=$(which pip)
+[[ $res == "/home/$(whoami)/miniconda/envs/py/bin/pip" ]] || (echo "pip path: $res" && exit 1)
 echo -e "${green}pip is good!${noColour}"
 
 # check python version
 echo -e "\n\n${separator}${blue}Checking python version...${noColour}"
-python --version | grep "Python 3.10." || exit 1
+res=$(python --version)
+echo $res | grep "Python 3.10." || (echo "python version: $res" && exit 1)
 echo -e "${green}python version is good!${noColour}"
 
 # check torch
 echo -e "\n\n${separator}${blue}Checking pytorch...${noColour}"
 res=$(python -c "import torch; print(torch.__version__)")
-[[ $res == "2.0.1+cu117" ]] || exit 1
+[[ $res == "2.0.1+cu117" ]] || (echo "pytorch version: $res" && exit 1)
 echo -e "${green}pytorch version is good!${noColour}"
 
 # check cupy

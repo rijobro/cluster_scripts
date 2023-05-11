@@ -15,7 +15,6 @@ local_pip_vars="${RUNAI_LOCAL_PIP}"
 overwrite=False
 check=True
 follow=True
-conda_env="${RUNAI_CONDA}"
 ssh_port=30069
 
 #####################################################################################
@@ -33,7 +32,7 @@ print_usage()
     echo "                  [-g|--gpu <val>] [-n|--node <val>]"
     echo "                  [-j|--job-name <val>] [-i|--im-name <val>]"
     echo "                  [-e|--env <val>] [-o|--overwrite <val>]"
-    echo "                  [-c|--check <val>] [-C|--conda <val>]"
+    echo "                  [-c|--check <val>]"
     echo "                  [-s|--ssh] [-p|--port] [-- <cmd>]"
     echo
     echo "options without args:"
@@ -60,8 +59,6 @@ print_usage()
     echo "                             deleted? Default: ${overwrite}."
     echo "-c, --check <val>         : If true, and cmd is given, get filename and check it exists."
     echo "                             deleted? Default: ${check}."
-    echo "-C, --conda <val>         : Conda environment to use. If not given, use the \`RUNAI_CONDA\` env variable."
-    echo "                             If \`RUNAI_CONDA\` does not exist, do not activate a conda environment."
     echo "-s, --ssh <val>           : Use SSH. Default: True if <cmd> blank, else False."
     echo "-p, --port <val>          : SSH port. Will use next available after given. Default: ${ssh_port}."
     echo
@@ -123,10 +120,6 @@ while [[ $# -gt 0 ]]; do
         ;;
         -c|--check)
             check="$1"
-            shift
-        ;;
-        -C|--conda)
-            conda_env=$1
             shift
         ;;
         -s|--ssh)
@@ -214,7 +207,6 @@ echo "Image name: ${im_name}"
 echo "Env vars: ${env_vars_str}"
 echo "Overwrite?: ${overwrite}"
 echo "Check?: ${check}"
-echo "Conda env: ${conda_env}"
 echo "Use SSH: ${use_ssh}"
 echo "SSH port: ${ssh_port}"
 echo
@@ -280,7 +272,7 @@ runai submit --name "$job_name" ${ssh_args} \
     --host-ipc \
     -v "${HOME}":"${HOME}" \
     --backoff-limit 0 \
-    -- "${script_dir}"/runai_startup.sh ${env_cmd} ${local_pip_cmd} -d "${run_dir}" -C "${conda_env}" -- ${cmd}
+    -- "${script_dir}"/runai_startup.sh ${env_cmd} ${local_pip_cmd} -d "${run_dir}" -- ${cmd}
 
 #####################################################################################
 # If desired, job status until RUNNING

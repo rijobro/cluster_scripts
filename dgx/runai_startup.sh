@@ -77,7 +77,6 @@ done
 echo
 echo "Path: ${run_dir}"
 echo "Command: ${cmd}"
-echo "SSH address: $(hostname -i)"
 echo
 echo "Environmental variables:"
 for env in "${envs[@]}"; do

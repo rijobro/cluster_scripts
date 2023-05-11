@@ -6,7 +6,7 @@ set -e # stop on error
 # Default variables
 #####################################################################################
 docker_push=true
-docker_base="nvcr.io/nvidia/pytorch:23.04-py3"
+docker_base="nvcr.io/nvidia/pytorch:23.03-py3"
 docker_im_name="${RUNAI_NAME}"
 pwd_hash="${RUNAI_SSH_HASH}"
 jupy_pwd_hash="${RUNAI_JUPY_HASH}"
@@ -157,7 +157,7 @@ docker build -t $docker_im_name . \
 # Test image
 #####################################################################################
 if [ $test_image = true ]; then
-    docker run -t --rm -v ./test_image.sh:/test_image.sh rb-monai bash "/test_image.sh"
+    docker run -t --rm --user $(whoami) -v ./test_image.sh:/test_image.sh rb-monai bash "/test_image.sh"
 fi
 
 #####################################################################################
