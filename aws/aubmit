@@ -25,7 +25,7 @@ cmd="sleep infinity"
 #####################################################################################
 print_usage()
 {
-    echo "SLURM submit script for JADE. Anything after the double hyphen will be executed as command in job."
+    echo "SLURM submit script for AWS cluster. Anything after the double hyphen will be executed as command in job."
     echo "  This could be \"python script.py\", for example."
     echo
     echo "Brief syntax:"
