@@ -7,7 +7,6 @@ set -e # exit on error
 # Default variables (search this file for "Post-processing defaults" to see others)
 #####################################################################################
 time="3days"
-state=""
 
 #####################################################################################
 # Usage
@@ -23,14 +22,11 @@ print_usage()
     echo
     echo "Full syntax:"
     echo "${0##*/} [-h|--help] [-t|--time] [-u|--units]"
-    echo "                  [-s|--state <val>]"
     echo
     echo "options without args:"
     echo "-h, --help                : Print this help."
     echo
     echo "-t, --time <val>          : Time frame to report results. Default: 3days."
-    echo "-s, --state <val>         : State of jobs to prune. Default: all. Uses ``grep``,"
-    echo "                              so format is RUNNING, PENDING, etc."
     echo
 }
 
@@ -50,10 +46,6 @@ do
             time=$1
             shift
         ;;
-        -s|--state)
-            state=$1
-            shift
-        ;;
         *)
             echo -e "\n\nUnknown argument: $key\n\n"
             print_usage
@@ -63,9 +55,6 @@ do
 done
 
 echo -n "Printing jobs over last $time. "
-if [ "${state}" != "" ]; then
-    echo -n "State: $state."
-fi
-echo
 
-SLURM_TIME_FORMAT="%d/%m %H:%M:%S" sacct -S now-"${time}" -X --format="jobid,jobname%40,partition,elapsed,timelimit,state,submit,start" | grep "$state"
+export SLURM_TIME_FORMAT="%d/%m %H:%M:%S"
+sacct -S now-"${time}" -E now $state -X --format="jobid,jobname%40,partition,elapsed,timelimit,state,submit,start"
