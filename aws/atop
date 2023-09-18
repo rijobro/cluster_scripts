@@ -5,7 +5,6 @@ from typing import List, Tuple
 import re
 from datetime import datetime
 from time import time, sleep
-import os
 from fcntl import ioctl
 from termios import TIOCGWINSZ
 from struct import pack, unpack
@@ -22,15 +21,11 @@ def get_scontrol_squeue() -> Tuple[List[str], List[str], List[str]]:
     squeue_pending = call(["squeue", "--state=PD,CF", "-o", "%100P %D"])[1:]
     return scontrol, squeue_running, squeue_pending
 
-def clear_screen():
-    # check and make call for specific operating system
-    os.system("cls" if os.name == "nt" else "clear")
 
-
-def get_terminal_width():
+def get_terminal_size():
     FOUR_UINT16_ZEROS = pack('HHHH', 0, 0, 0, 0)
-    _, w, *_ = unpack('HHHH', ioctl(0, TIOCGWINSZ, FOUR_UINT16_ZEROS))
-    return w
+    h, w, *_ = unpack('HHHH', ioctl(0, TIOCGWINSZ, FOUR_UINT16_ZEROS))
+    return h, w
 
 
 class Node:
@@ -146,11 +141,12 @@ class ClusterDisplay:
         self.bar_frac = 0.7
         self.w: int = None
 
+
     def update(self) -> None:
         self.cluster.update()
 
         # get console width (-10 for safety)
-        self.w = get_terminal_width() - 10
+        self.w = get_terminal_size()[1] - 10
         self.w_bar = int(round(self.w * self.bar_frac / self.pix_per_symbol))
 
     def disp_state(self) -> str:
@@ -255,8 +251,11 @@ class ClusterDisplay:
 
         out += self.disp_legend()
 
-        clear_screen()
-        print(out)
+        # get height of terminal, move cursor up that many lines and clear them all.
+        # print the output. This way we avoid screen flicker.
+        num_lines = get_terminal_size()[0]
+        print('\033[1A\x1b[2K' * num_lines + out)
+
 
 @click.command()
 @click.option("-l", "--loop", type=int, default=2, help="Loop every N seconds.")
@@ -265,7 +264,7 @@ def main(loop):
     scontrol, squeue_running, _ = get_scontrol_squeue()
 
     node_names = set(re.search("NodeName=([^\s]+)", s).group(1) for s in scontrol)
-    nodes = [Node(n, scontrol, squeue_running) for n in node_names]
+    nodes = [Node(n, scontrol, squeue_running) for n in sorted(node_names)]
     
     # Get partitions and assign nodes
     partition_names = set(n.partition for n in nodes)
