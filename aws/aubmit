@@ -15,6 +15,7 @@ run_dir=$(pwd)
 gpu=1
 cpu=10
 out="${HOME}/job_logs/%j.out"
+partition="g5-queue2"
 nodes=1
 check=true
 follow=true
@@ -36,7 +37,8 @@ print_usage()
     echo "                  [-d|--dir <val>] [-o|--out <val>]"
     echo "                  [-g|--gpu <val>] [-n,--cpu <val>]"
     echo "                  [-J|--name <val>] [-e|--exp <val>]"
-    echo "                  [-N|--nodes <val>] [-C|--check <val>] -- <cmd>"
+    echo "                  [-N|--nodes <val>] [-C|--check <val>]"
+    echo "                  [-p|--partition <val>] -- <cmd>"
     echo
     echo "options without args:"
     echo "-h, --help                : Print this help."
@@ -52,6 +54,7 @@ print_usage()
     echo "-N, --nodes <val>         : Number of nodes. Default: ${nodes}."
     echo "-C, --check <val>         : If true, and cmd is given, get filename and check it exists."
     echo "                             deleted? Default: ${check}."
+    echo "-p, --partition <val>     : Partition to use. Default: ${partition}."
     echo
 }
 
@@ -96,6 +99,10 @@ while [[ $# -gt 0 ]]; do
             out=$1
             shift
         ;;
+        -p|--partition)
+            partition=$1
+            shift
+        ;;
         -N|--nodes)
             nodes=$1
             shift
@@ -116,6 +123,11 @@ done
 # Post-process input arguments
 #####################################################################################
 
+# If partition is given, add to sbatch
+if [ ! -z "$partition" ]; then
+    partition_str="#SBATCH --partition=${partition}"
+fi
+
 log_fname=${out/\%j/${job_id}}
 # default job name is cmd, with certain parts stripped.
 default_job_name=$cmd
@@ -133,6 +145,7 @@ echo "Num GPUs: ${gpu}"
 echo "Num CPUs: ${cpu}"
 echo "Job name: ${job_name}"
 echo "Log file: ${out}"
+echo "Partition: ${partition}"
 echo "Check?: ${check}"
 echo "Follow?: ${follow}"
 echo
@@ -165,14 +178,14 @@ fi
 # Create submit file (temp, deleted by cleanup function)
 tmp_file=/tmp/tmp_submit_${RANDOM}.sh
 cat > ${tmp_file} << EOL
-#!/bin/bash
+#!/bin/zsh
 
 #SBATCH --nodes=${nodes}
 #SBATCH -J ${job_name}
 #SBATCH --gres=gpu:${gpu}
+${partition_str}
 #SBATCH --chdir ${run_dir}
 #SBATCH -n ${cpu}
-${exp_cmd}
 #SBATCH --out ${out}
 
 set -e # exit on error
@@ -180,27 +193,6 @@ set -e # exit on error
 echo hostname: \$(hostname)
 echo IP address: \$(hostname -I)
 echo user: \$(whoami)
-
-function cleanup {
-    rm -f \${jupy_file}
-}
-trap cleanup EXIT
-
-
-# the trap code is designed to send a stop (SIGTERM) signal to child processes,
-# thus allowing python code to catch the signal and execute a callback
-trap 'trap " " SIGTERM; kill 0; wait' SIGTERM
-
-# mkdir -p ${HOME}/tmp
-# nohup_out="${HOME}/tmp/nohup_\${RANDOM}.out"
-# echo "running A1111 and saving output to \${nohup_out}"
-# nohup ${HOME}/Documents/Code/stable-diffusion-webui/webui.sh --api --api-log --port=7899 --xformers --reinstall-xformers --nowebui >> \${nohup_out} 2>&1 &
-# ( tail -f -n0 \${nohup_out} & ) | grep -q "localhost:7899"
-# cat \${nohup_out}
-# echo seems to be running, will wait a bit more seconds just to be sure
-# sleep 300
-# cat \${nohup_out}
-# echo
 
 echo -e "\nrunning ${cmd}"
 
