@@ -1,0 +1,87 @@
+#!/bin/bash
+
+set -e # exit on error
+
+
+#####################################################################################
+# Default variables (search this file for "Post-processing defaults" to see others)
+#####################################################################################
+time="3days"
+loop=""
+
+#####################################################################################
+# Usage
+#####################################################################################
+print_usage()
+{
+    # Display Help
+    echo "SLURM sacct wrapper. Prints the information I find most useful, with"
+    echo "  convenience wrappers for arguments I use most frequently."
+    echo
+    echo "Brief syntax:"
+    echo "${0##*/} [OPTIONS(0)...] [ : [OPTIONS(N)...]] -- <cmd>"
+    echo
+    echo "Full syntax:"
+    echo "${0##*/} [-h|--help] [-t|--time] [-u|--units]"
+    echo
+    echo "options without args:"
+    echo "-h, --help                : Print this help."
+    echo
+    echo "-t, --time <val>          : Time frame to report results. Default: 3days."
+    echo "-l, --loop <val>          : Loop every N seconds."
+    echo
+}
+
+#####################################################################################
+# Parse input arguments
+#####################################################################################
+while [[ $# -gt 0 ]]
+do
+    key="$1"
+    shift
+    case $key in
+        -h|--help)
+            print_usage
+            exit 0
+        ;;
+        -t|--time)
+            time=$1
+            shift
+        ;;
+        -l|--loop)
+            loop=$1
+            shift
+        ;;
+        *)
+            echo -e "\n\nUnknown argument: $key\n\n"
+            print_usage
+            exit 1
+        ;;
+    esac
+done
+
+echo "Printing jobs over last $time."
+
+export SLURM_TIME_FORMAT="%d/%m %H:%M:%S"
+
+if [ "$loop" == "" ]; then
+    sacct -S now-"${time}" -E now $state -X --format="jobid,jobname%40,partition,elapsed,timelimit,state,submit,start"
+    exit 0
+fi
+
+# initial date is yesterday to trigger inital update
+t_then=$(date -d "$date -1 days" +%s)
+while true; do
+    t_now=$(date +%s)
+    elapsed=$((t_now - t_then))
+    # update after certain amount of time or change of width
+    if [[ "$elapsed" -ge "$loop" ]]; then
+        timestamp="$(date +%Y-%m-%dT%H:%M:%S)"
+        sacct_output=$(sacct -S now-"${time}" -E now $state -X --format="jobid,jobname%40,partition,elapsed,timelimit,state,submit,start")
+        text="$timestamp\n$sacct_output"
+        output="$(clear; echo $text)"
+        echo -e "$output"
+        t_then=$t_now
+    fi
+    sleep 0.1
+done

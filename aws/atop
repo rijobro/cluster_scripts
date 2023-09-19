@@ -31,7 +31,8 @@ def get_terminal_size():
 class Node:
     def __init__(self, name: str, scontrol: List[str], squeue: List[str]) -> None:
         self.name = name
-        self.update(scontrol, squeue)        
+        self.set_up = False
+        self.update(scontrol, squeue) 
 
     def get_gpu_alloc(self, squeue: str) -> int:
         total_alloc = 0
@@ -41,18 +42,21 @@ class Node:
                 total_alloc += int(alloc)
         return total_alloc
     
+    def get_line_in_scontrol(self, scontrol: List[str]) -> str:
+        for s in scontrol:
+            if s.split()[0].replace("NodeName=", "") == self.name:
+                return s
+        raise RuntimeError(f"Node {self.name} not found in scontrol output.")
+    
     def update(self, scontrol: List[str], squeue: List[str]) -> None:
-        s = None
-        for _s in scontrol:
-            if _s.split()[0].replace("NodeName=", "") == self.name:
-                s = _s
-                break
-        assert s is not None, f"Node {self.name} not found in scontrol output."
-        self.partition = re.search("Partitions=([^\s]+)", s).group(1)
-        self.is_sleeping = "POWERED_DOWN" in s
-        
-        self.cpu_total = int(re.search("CPUTot=([0-9]+)", s).group(1))
-        self.gpu_total = int(re.search("Gres=gpu:[^:]+:([0-9]+)", s).group(1))
+        s = self.get_line_in_scontrol(scontrol)
+        if not self.set_up:
+            self.partition = re.search("Partitions=([^\s]+)", s).group(1)
+            self.cpu_total = int(re.search("CPUTot=([0-9]+)", s).group(1))
+            self.gpu_total = int(re.search("Gres=gpu:[^:]+:([0-9]+)", s).group(1))
+            self.set_up = True
+
+        self.is_sleeping = "POWERED_DOWN" in s        
         if self.is_sleeping:
             self.cpu_alloc, self.gpu_alloc = 0, 0
             self.cpu_sleep, self.gpu_sleep = self.cpu_total, self.gpu_total
@@ -258,7 +262,7 @@ class ClusterDisplay:
 
 
 @click.command()
-@click.option("-l", "--loop", type=int, default=2, help="Loop every N seconds.")
+@click.option("-l", "--loop", type=float, default=2, help="Loop every N seconds.")
 def main(loop):
     # Get nodes
     scontrol, squeue_running, _ = get_scontrol_squeue()
