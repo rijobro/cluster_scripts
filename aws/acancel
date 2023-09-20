@@ -1,0 +1,78 @@
+#!/bin/bash
+
+set -e # exit on error
+
+#####################################################################################
+# Usage
+#####################################################################################
+print_usage()
+{
+    # Display Help
+    echo "SLURM cancel range of jobs."
+    echo
+    echo "Brief syntax:"
+    echo "${0##*/} [OPTIONS(0)...] [ : [OPTIONS(N)...]]"
+    echo
+    echo "Full syntax:"
+    echo "${0##*/} [-h|--help] [-r|--range <start_id> <end_id>] [-n|--name <val>]"
+    echo
+    echo "options without args:"
+    echo "-h, --help                      : Print this help."
+    echo
+    echo "options with args:"
+    echo "-r, --range <start_id> <end_id> : Start and end ids."
+    echo "-n, --name <val>                : Delete jobs with names as pattern."
+    echo
+}
+
+#####################################################################################
+# Parse input arguments
+#####################################################################################
+while [[ $# -gt 0 ]]; do
+    key="$1"
+    shift
+    case $key in
+        -h|--help)
+            print_usage
+            exit 0
+        ;;
+        -r|--range)
+            start_id=$1
+            end_id=$2
+            shift
+            shift
+        ;;
+        -n|--name)
+            name=$1
+            shift
+        ;;
+        *)
+            echo -e "\n\nUnknown argument: $key\n\n"
+            print_usage
+            exit 1
+        ;;
+    esac
+done
+
+# do XOR check for name or start_id
+if [[ -z "$name" && -z "$start_id" ]] || [[ ! -z "$name" && ! -z "$start_id" ]]; then
+    echo -e "\n\nMust specify either name or range (and not both).\n\n"
+    print_usage
+    exit 1
+fi
+
+#####################################################################################
+# Cancel jobs
+#####################################################################################
+export SLURM_TIME_FORMAT="%d/%m %H:%M:%S"
+export SQUEUE_FORMAT="%.5i  %u  %.9P  %30j  %40R  %8T  %20V  %20S  %10M  %15l  %6D  %r"
+
+if [[ ! -z "$name" ]]; then
+    echo "Cancelling jobs with name $name."
+    squeue | grep $name | awk '{print $1}' | xargs scancel
+else
+    echo "Cancelling jobs with ids $start_id to $end_id."
+    for i in $(seq $start_id 1 $end_id); do
+        scancel $i
+    done
+fi
