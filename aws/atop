@@ -32,7 +32,7 @@ class Node:
     def __init__(self, name: str, scontrol: List[str], squeue: List[str]) -> None:
         self.name = name
         self.set_up = False
-        self.update(scontrol, squeue) 
+        self.update(scontrol, squeue)
 
     def get_gpu_alloc(self, squeue: str) -> int:
         total_alloc = 0
@@ -41,13 +41,13 @@ class Node:
             if name == self.name:
                 total_alloc += int(alloc)
         return total_alloc
-    
+
     def get_line_in_scontrol(self, scontrol: List[str]) -> str:
         for s in scontrol:
             if s.split()[0].replace("NodeName=", "") == self.name:
                 return s
         raise RuntimeError(f"Node {self.name} not found in scontrol output.")
-    
+
     def update(self, scontrol: List[str], squeue: List[str]) -> None:
         s = self.get_line_in_scontrol(scontrol)
         if not self.set_up:
@@ -56,7 +56,7 @@ class Node:
             self.gpu_total = int(re.search("Gres=gpu:[^:]+:([0-9]+)", s).group(1))
             self.set_up = True
 
-        self.is_sleeping = "POWERED_DOWN" in s        
+        self.is_sleeping = "POWERED_DOWN" in s
         if self.is_sleeping:
             self.cpu_alloc, self.gpu_alloc = 0, 0
             self.cpu_sleep, self.gpu_sleep = self.cpu_total, self.gpu_total
@@ -67,7 +67,7 @@ class Node:
             self.gpu_alloc = self.get_gpu_alloc(squeue)
             self.cpu_free = self.cpu_total - self.cpu_alloc
             self.gpu_free = self.gpu_total - self.gpu_alloc
-        
+
         assert self.cpu_free + self.cpu_alloc + self.cpu_sleep == self.cpu_total, f"CPU allocation error for node {self.name}."
         assert self.gpu_free + self.gpu_alloc + self.gpu_sleep == self.gpu_total, f"GPU allocation error for node {self.name}."
 
@@ -154,7 +154,7 @@ class ClusterDisplay:
         self.w_bar = int(round(self.w * self.bar_frac / self.pix_per_symbol))
 
     def disp_state(self) -> str:
-        symbol_sleep, symbol_awake = "💤🌱" if self.emojis else "↓↑"
+        symbol_sleep, symbol_awake = "💤👆" if self.emojis else "↓↑"
 
         out = "\nState:\n"
         for p in self.cluster.partitions:
@@ -176,7 +176,7 @@ class ClusterDisplay:
 
     def disp_gpu_usage(self) -> str:
         symbol_alloc, symbol_sleep, symbol_free  = "🔺💤🌱" if self.emojis else "#↓ "
-        
+
         out = "\nGPU usage:\n"
         for p in self.cluster.partitions:
             out += f"{p.name:<10} |"
@@ -187,7 +187,7 @@ class ClusterDisplay:
             out += f"{symbol_sleep * num_sleep}"
             out += f"{symbol_free * num_free}"
             out += f"| \"{symbol_alloc}\": {p.gpu_alloc:<4} \"{symbol_sleep}\": {p.gpu_sleep:<4} \"{symbol_free}\": {p.gpu_free:<4} Tot: {p.gpu_total:<4}\n"
-        
+
         out += f"{'Total':<10} |"
         num_alloc = int(round(self.w_bar * self.cluster.gpu_alloc / (self.cluster.gpu_total)))
         num_sleep = int(round(self.w_bar * self.cluster.gpu_sleep / (self.cluster.gpu_total)))
@@ -196,12 +196,12 @@ class ClusterDisplay:
         out += f"{symbol_sleep * num_sleep}"
         out += f"{symbol_free * num_free}"
         out += f"| \"{symbol_alloc}\": {self.cluster.gpu_alloc:<4} \"{symbol_sleep}\": {self.cluster.gpu_sleep:<4} \"{symbol_free}\": {self.cluster.gpu_free:<4} Tot: {self.cluster.gpu_total:<4}\n"
-        
+
         return out
 
     def disp_cpu_usage(self) -> str:
         symbol_alloc, symbol_sleep, symbol_free  = "🔺💤🌱" if self.emojis else "#↓ "
-        
+
         out = "\nCPU usage:\n"
         for p in self.cluster.partitions:
             out += f"{p.name:<10} |"
@@ -222,14 +222,14 @@ class ClusterDisplay:
         out += f"{symbol_free * num_free}"
         out += f"| \"{symbol_alloc}\": {self.cluster.cpu_alloc:<4} \"{symbol_sleep}\": {self.cluster.cpu_sleep:<4} \"{symbol_free}\": {self.cluster.cpu_free:<4} Tot: {self.cluster.cpu_total:<4}\n"
         return out
-    
+
     def disp_legend(self) -> str:
         sleep = "💤" if self.emojis else "↓"
-        awake = "🌱" if self.emojis else "↑"
+        awake = "👆" if self.emojis else "↑"
         alloc = "🔺" if self.emojis else "#"
         free = "🌱" if self.emojis else " "
         return f"\nLegend:    Sleep: \"{sleep}\"    Alloc: \"{alloc}\"    Awake: \"{awake}\"    Free: \"{free}\"\n"
-    
+
     def disp_queue_length(self) -> str:
         out = "\nQueue length:\n"
         for p in self.cluster.partitions:
@@ -269,7 +269,7 @@ def main(loop):
 
     node_names = set(re.search("NodeName=([^\s]+)", s).group(1) for s in scontrol)
     nodes = [Node(n, scontrol, squeue_running) for n in sorted(node_names)]
-    
+
     # Get partitions and assign nodes
     partition_names = set(n.partition for n in nodes)
     partitions = [Partition(n) for n in partition_names]

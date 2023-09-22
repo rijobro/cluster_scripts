@@ -8,7 +8,8 @@ set -e # exit on error
 print_usage()
 {
     # Display Help
-    echo "SLURM squeue wrapper. Prints the information I find most useful. All arguments are passed to squeue."
+    echo "SLURM squeue wrapper sorted by JOBID. Prints the information I find most useful. "
+    echo "All arguments to this script are passed to squeue."
     echo
     echo "Syntax:"
     echo "${0##*/} [-h|--help] [squeue_options]"
@@ -37,4 +38,4 @@ fi
 export SLURM_TIME_FORMAT="%d/%m %H:%M:%S"
 export SQUEUE_FORMAT='%.5i|||%u|||%.9P|||%60j|||%40R|||%8T|||%20V|||%20S|||%10M|||%15l|||%6D|||%31r'
 
-squeue $args | sed -r 's/  +//g' | column -t -s '|||'
+squeue -S i $args | sed -r 's/  +//g' | column -t -s '|||'
