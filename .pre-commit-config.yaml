@@ -1,0 +1,48 @@
+# Copyright (c) 2023 Synthesia Limited - All Rights Reserved
+#
+# Unauthorized copying of this file, via any medium is strictly prohibited.
+# Proprietary and confidential.
+
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+    -   id: check-yaml
+    -   id: check-json
+    -   id: check-added-large-files
+    -   id: detect-aws-credentials
+        args: [--allow-missing-credentials]
+    -   id: detect-private-key
+    -   id: check-executables-have-shebangs
+    -   id: check-shebang-scripts-are-executable
+    -   id: mixed-line-ending
+
+-   repo: https://github.com/psf/black
+    rev: '23.1.0'
+    hooks:
+    - id: black
+      language_version: python3
+
+- repo: https://github.com/charliermarsh/ruff-pre-commit
+  rev: 'v0.0.254'
+  hooks:
+    - id: ruff
+      args: [--fix, --exit-non-zero-on-fix]
+
+- repo: https://github.com/jazzband/pip-tools
+  rev: 6.13.0
+  hooks:
+    - id: pip-compile
+      name: pip-compile setup.py
+      files: ^(setup\.py|requirements\.txt)$
+      args: [-v, --no-emit-index-url, -o, requirements.txt, --resolver, backtracking, setup.py]
+
+    - id: pip-compile
+      name: pip-compile setup.py (dev)
+      files: ^(setup\.py|requirements-dev\.txt)$
+      args: [--no-emit-index-url, --extra, dev, -o, requirements-dev.txt, --resolver, backtracking, setup.py]

@@ -1,13 +1,14 @@
 #!/usr/bin/env python
-import click
-from subprocess import check_output
-from typing import List, Tuple
 import re
 from datetime import datetime
-from time import time, sleep
 from fcntl import ioctl
-from termios import TIOCGWINSZ
 from struct import pack, unpack
+from subprocess import check_output
+from termios import TIOCGWINSZ
+from time import sleep, time
+from typing import List, Tuple
+
+import click
 
 
 def call(cmd: List[str]) -> List[str]:
@@ -23,8 +24,8 @@ def get_scontrol_squeue() -> Tuple[List[str], List[str], List[str]]:
 
 
 def get_terminal_size():
-    FOUR_UINT16_ZEROS = pack('HHHH', 0, 0, 0, 0)
-    h, w, *_ = unpack('HHHH', ioctl(0, TIOCGWINSZ, FOUR_UINT16_ZEROS))
+    four_uint16_zeros = pack("HHHH", 0, 0, 0, 0)
+    h, w, *_ = unpack("HHHH", ioctl(0, TIOCGWINSZ, four_uint16_zeros))
     return h, w
 
 
@@ -51,7 +52,7 @@ class Node:
     def update(self, scontrol: List[str], squeue: List[str]) -> None:
         s = self.get_line_in_scontrol(scontrol)
         if not self.set_up:
-            self.partition = re.search("Partitions=([^\s]+)", s).group(1)
+            self.partition = re.search("Partitions=([^\\s]+)", s).group(1)
             self.cpu_total = int(re.search("CPUTot=([0-9]+)", s).group(1))
             self.gpu_total = int(re.search("Gres=gpu:[^:]+:([0-9]+)", s).group(1))
             self.set_up = True
@@ -68,8 +69,12 @@ class Node:
             self.cpu_free = self.cpu_total - self.cpu_alloc
             self.gpu_free = self.gpu_total - self.gpu_alloc
 
-        assert self.cpu_free + self.cpu_alloc + self.cpu_sleep == self.cpu_total, f"CPU allocation error for node {self.name}."
-        assert self.gpu_free + self.gpu_alloc + self.gpu_sleep == self.gpu_total, f"GPU allocation error for node {self.name}."
+        assert (
+            self.cpu_free + self.cpu_alloc + self.cpu_sleep == self.cpu_total
+        ), f"CPU allocation error for node {self.name}."
+        assert (
+            self.gpu_free + self.gpu_alloc + self.gpu_sleep == self.gpu_total
+        ), f"GPU allocation error for node {self.name}."
 
 
 class Partition:
@@ -84,7 +89,6 @@ class Partition:
             if name == self.name:
                 total_pending += int(pending)
         return total_pending
-
 
     def update(self, scontrol: List[str], squeue_running: List[str], squeue_pending: List[str]) -> None:
         for n in self.nodes:
@@ -102,8 +106,12 @@ class Partition:
         self.gpu_free = sum(n.gpu_free for n in self.nodes)
 
         assert self.n_sleep + self.n_awake == len(self.nodes), f"Node allocation error for partition {self.name}."
-        assert self.cpu_free + self.cpu_alloc + self.cpu_sleep == self.cpu_total, f"CPU allocation error for partition {self.name}."
-        assert self.gpu_free + self.gpu_alloc + self.gpu_sleep == self.gpu_total, f"GPU allocation error for partition {self.name}."
+        assert (
+            self.cpu_free + self.cpu_alloc + self.cpu_sleep == self.cpu_total
+        ), f"CPU allocation error for partition {self.name}."
+        assert (
+            self.gpu_free + self.gpu_alloc + self.gpu_sleep == self.gpu_total
+        ), f"GPU allocation error for partition {self.name}."
 
         self.pending_gpus = self.get_pending_gpus(squeue_pending)
 
@@ -129,9 +137,11 @@ class Cluster:
         self.gpu_sleep = sum(p.gpu_sleep for p in self.partitions)
         self.gpu_free = sum(p.gpu_free for p in self.partitions)
 
-        assert self.n_sleep + self.n_awake == sum(len(p.nodes) for p in self.partitions), f"Node allocation error for cluster."
-        assert self.cpu_free + self.cpu_alloc + self.cpu_sleep == self.cpu_total, f"CPU allocation error for cluster."
-        assert self.gpu_free + self.gpu_alloc + self.gpu_sleep == self.gpu_total, f"GPU allocation error for cluster."
+        assert self.n_sleep + self.n_awake == sum(
+            len(p.nodes) for p in self.partitions
+        ), "Node allocation error for cluster."
+        assert self.cpu_free + self.cpu_alloc + self.cpu_sleep == self.cpu_total, "CPU allocation error for cluster."
+        assert self.gpu_free + self.gpu_alloc + self.gpu_sleep == self.gpu_total, "GPU allocation error for cluster."
 
         self.pending_gpus = sum(p.pending_gpus for p in self.partitions)
 
@@ -144,7 +154,6 @@ class ClusterDisplay:
         self.pix_per_symbol = 2 if emojis else 1
         self.bar_frac = 0.7
         self.w: int = None
-
 
     def update(self) -> None:
         self.cluster.update()
@@ -163,19 +172,25 @@ class ClusterDisplay:
             num_awake = self.w_bar - num_sleep
             out += f"{symbol_sleep * num_sleep}"
             out += f"{symbol_awake * num_awake}"
-            out += f"| \"{symbol_sleep}\": {p.n_sleep:<4} \"{symbol_awake}\": {p.n_awake:<4} Tot: {len(p.nodes):<4}\n"
+            out += "| "
+            out += f'"{symbol_sleep}": {p.n_sleep:<4} '
+            out += f'"{symbol_awake}": {p.n_awake:<4} '
+            out += f"Tot: {len(p.nodes):<4}\n"
 
         out += f"{'Total':<10} |"
         num_sleep = int(round(self.w_bar * self.cluster.n_sleep / (self.cluster.n_awake + self.cluster.n_sleep)))
         num_awake = self.w_bar - num_sleep
         out += f"{symbol_sleep * num_sleep}"
         out += f"{symbol_awake * num_awake}"
-        out += f"| \"{symbol_sleep}\": {self.cluster.n_sleep:<4} \"{symbol_awake}\": {self.cluster.n_awake:<4} Tot: {(self.cluster.n_sleep + self.cluster.n_awake):<4}\n"
+        out += "| "
+        out += f'"{symbol_sleep}": {self.cluster.n_sleep:<4} '
+        out += f'"{symbol_awake}": {self.cluster.n_awake:<4} '
+        out += f'Tot: {(self.cluster.n_sleep + self.cluster.n_awake):<4}\n'
 
         return out
 
     def disp_gpu_usage(self) -> str:
-        symbol_alloc, symbol_sleep, symbol_free  = "🔺💤🌱" if self.emojis else "#↓ "
+        symbol_alloc, symbol_sleep, symbol_free = "🔺💤🌱" if self.emojis else "#↓ "
 
         out = "\nGPU usage:\n"
         for p in self.cluster.partitions:
@@ -186,7 +201,11 @@ class ClusterDisplay:
             out += f"{symbol_alloc * num_alloc}"
             out += f"{symbol_sleep * num_sleep}"
             out += f"{symbol_free * num_free}"
-            out += f"| \"{symbol_alloc}\": {p.gpu_alloc:<4} \"{symbol_sleep}\": {p.gpu_sleep:<4} \"{symbol_free}\": {p.gpu_free:<4} Tot: {p.gpu_total:<4}\n"
+            out += "| "
+            out += f'"{symbol_alloc}": {p.gpu_alloc:<4} '
+            out += f'"{symbol_sleep}": {p.gpu_sleep:<4} '
+            out += f'"{symbol_free}": {p.gpu_free:<4} '
+            out += f'Tot: {p.gpu_total:<4}\n'
 
         out += f"{'Total':<10} |"
         num_alloc = int(round(self.w_bar * self.cluster.gpu_alloc / (self.cluster.gpu_total)))
@@ -195,12 +214,16 @@ class ClusterDisplay:
         out += f"{symbol_alloc * num_alloc}"
         out += f"{symbol_sleep * num_sleep}"
         out += f"{symbol_free * num_free}"
-        out += f"| \"{symbol_alloc}\": {self.cluster.gpu_alloc:<4} \"{symbol_sleep}\": {self.cluster.gpu_sleep:<4} \"{symbol_free}\": {self.cluster.gpu_free:<4} Tot: {self.cluster.gpu_total:<4}\n"
+        out += "| "
+        out += f'"{symbol_alloc}": {self.cluster.gpu_alloc:<4} '
+        out += f'"{symbol_sleep}": {self.cluster.gpu_sleep:<4} '
+        out += f'"{symbol_free}": {self.cluster.gpu_free:<4} '
+        out += f'Tot: {self.cluster.gpu_total:<4}\n'
 
         return out
 
     def disp_cpu_usage(self) -> str:
-        symbol_alloc, symbol_sleep, symbol_free  = "🔺💤🌱" if self.emojis else "#↓ "
+        symbol_alloc, symbol_sleep, symbol_free = "🔺💤🌱" if self.emojis else "#↓ "
 
         out = "\nCPU usage:\n"
         for p in self.cluster.partitions:
@@ -211,7 +234,11 @@ class ClusterDisplay:
             out += f"{symbol_alloc * num_alloc}"
             out += f"{symbol_sleep * num_sleep}"
             out += f"{symbol_free * num_free}"
-            out += f"| \"{symbol_alloc}\": {p.cpu_alloc:<4} \"{symbol_sleep}\": {p.cpu_sleep:<4} \"{symbol_free}\": {p.cpu_free:<4} Tot: {p.cpu_total:<4}\n"
+            out += "| "
+            out += f'"{symbol_alloc}": {p.cpu_alloc:<4} '
+            out += f'"{symbol_sleep}": {p.cpu_sleep:<4} '
+            out += f'"{symbol_free}": {p.cpu_free:<4} '
+            out += f'Tot: {p.cpu_total:<4}\n'
 
         out += f"{'Total':<10} |"
         num_alloc = int(round(self.w_bar * self.cluster.cpu_alloc / (self.cluster.cpu_total)))
@@ -220,7 +247,11 @@ class ClusterDisplay:
         out += f"{symbol_alloc * num_alloc}"
         out += f"{symbol_sleep * num_sleep}"
         out += f"{symbol_free * num_free}"
-        out += f"| \"{symbol_alloc}\": {self.cluster.cpu_alloc:<4} \"{symbol_sleep}\": {self.cluster.cpu_sleep:<4} \"{symbol_free}\": {self.cluster.cpu_free:<4} Tot: {self.cluster.cpu_total:<4}\n"
+        out += "| "
+        out += f'"{symbol_alloc}": {self.cluster.cpu_alloc:<4} '
+        out += f'"{symbol_sleep}": {self.cluster.cpu_sleep:<4} '
+        out += f'"{symbol_free}": {self.cluster.cpu_free:<4} '
+        out += f'Tot: {self.cluster.cpu_total:<4}\n'
         return out
 
     def disp_legend(self) -> str:
@@ -228,7 +259,7 @@ class ClusterDisplay:
         awake = "👆" if self.emojis else "↑"
         alloc = "🔺" if self.emojis else "#"
         free = "🌱" if self.emojis else " "
-        return f"\nLegend:    Sleep: \"{sleep}\"    Alloc: \"{alloc}\"    Awake: \"{awake}\"    Free: \"{free}\"\n"
+        return f'\nLegend:    Sleep: "{sleep}"    Alloc: "{alloc}"    Awake: "{awake}"    Free: "{free}"\n'
 
     def disp_queue_length(self) -> str:
         out = "\nQueue length:\n"
@@ -258,7 +289,7 @@ class ClusterDisplay:
         # get height of terminal, move cursor up that many lines and clear them all.
         # print the output. This way we avoid screen flicker.
         num_lines = get_terminal_size()[0]
-        print('\033[1A\x1b[2K' * num_lines + out)
+        print("\033[1A\x1b[2K" * num_lines + out)
 
 
 @click.command()
@@ -267,7 +298,7 @@ def main(loop):
     # Get nodes
     scontrol, squeue_running, _ = get_scontrol_squeue()
 
-    node_names = set(re.search("NodeName=([^\s]+)", s).group(1) for s in scontrol)
+    node_names = set(re.search("NodeName=([^\\s]+)", s).group(1) for s in scontrol)
     nodes = [Node(n, scontrol, squeue_running) for n in sorted(node_names)]
 
     # Get partitions and assign nodes
@@ -282,6 +313,7 @@ def main(loop):
     cluster_disp = ClusterDisplay(cluster)
 
     first_time = True
+    tic: float = None
     while True:
         if not first_time:
             sleep(max(loop - (time() - tic), 0))
