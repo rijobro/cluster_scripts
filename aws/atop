@@ -11,16 +11,17 @@ from typing import List, Tuple
 import click
 
 
-def call(cmd: List[str]) -> List[str]:
-    out = check_output(cmd).decode().split("\n")
+def call(cmd: List[str], split: str = "\n") -> List[str]:
+    out = check_output(cmd).decode().split(split)
     return [x for x in out if x]
 
 
 def get_scontrol_squeue() -> Tuple[List[str], List[str], List[str]]:
     scontrol = call("scontrol -o show nodes".split())
-    squeue_running = call(["squeue", "--state=R", "-o", "%100R %D"])[1:]
+    scontrol_jobs = call(["scontrol", "show", "jobs"], split="\n\n")
+    scontrol_jobs = [s for s in scontrol_jobs if "JobState=RUNNING" in s]
     squeue_pending = call(["squeue", "--state=PD,CF", "-o", "%100P %D"])[1:]
-    return scontrol, squeue_running, squeue_pending
+    return scontrol, scontrol_jobs, squeue_pending
 
 
 def get_terminal_size():
@@ -30,17 +31,17 @@ def get_terminal_size():
 
 
 class Node:
-    def __init__(self, name: str, scontrol: List[str], squeue: List[str]) -> None:
+    def __init__(self, name: str, scontrol: List[str], sinfo: List[str]) -> None:
         self.name = name
         self.set_up = False
-        self.update(scontrol, squeue)
+        self.update(scontrol, sinfo)
 
-    def get_gpu_alloc(self, squeue: str) -> int:
+    def get_gpu_alloc(self, scontrol_jobs: str) -> int:
         total_alloc = 0
-        for x in squeue:
-            name, alloc = x.split()
-            if name == self.name:
-                total_alloc += int(alloc)
+        for x in scontrol_jobs:
+            host = re.search("BatchHost=(.+)", x).group(1)
+            if host == self.name:
+                total_alloc = int(re.search("NumNodes=([0-9]+)", x).group(1))
         return total_alloc
 
     def get_line_in_scontrol(self, scontrol: List[str]) -> str:
@@ -49,7 +50,7 @@ class Node:
                 return s
         raise RuntimeError(f"Node {self.name} not found in scontrol output.")
 
-    def update(self, scontrol: List[str], squeue: List[str]) -> None:
+    def update(self, scontrol: List[str], scontrol_jobs: List[str]) -> None:
         s = self.get_line_in_scontrol(scontrol)
         if not self.set_up:
             self.partition = re.search("Partitions=([^\\s]+)", s).group(1)
@@ -65,7 +66,7 @@ class Node:
         else:
             self.cpu_sleep, self.gpu_sleep = 0, 0
             self.cpu_alloc = int(re.search("CPUAlloc=([0-9]+)", s).group(1))
-            self.gpu_alloc = self.get_gpu_alloc(squeue)
+            self.gpu_alloc = self.get_gpu_alloc(scontrol_jobs)
             self.cpu_free = self.cpu_total - self.cpu_alloc
             self.gpu_free = self.gpu_total - self.gpu_alloc
 
@@ -90,9 +91,9 @@ class Partition:
                 total_pending += int(pending)
         return total_pending
 
-    def update(self, scontrol: List[str], squeue_running: List[str], squeue_pending: List[str]) -> None:
+    def update(self, scontrol: List[str], scontrol_jobs: List[str], squeue_pending: List[str]) -> None:
         for n in self.nodes:
-            n.update(scontrol, squeue_running)
+            n.update(scontrol, scontrol_jobs)
 
         self.n_sleep = sum(n.is_sleeping for n in self.nodes)
         self.n_awake = sum(not n.is_sleeping for n in self.nodes)
@@ -121,10 +122,10 @@ class Cluster:
         self.partitions = partitions
 
     def update(self) -> None:
-        scontrol, squeue_running, squeue_pending = get_scontrol_squeue()
+        scontrol, scontrol_jobs, squeue_pending = get_scontrol_squeue()
 
         for p in self.partitions:
-            p.update(scontrol, squeue_running, squeue_pending)
+            p.update(scontrol, scontrol_jobs, squeue_pending)
 
         self.n_sleep = sum(p.n_sleep for p in self.partitions)
         self.n_awake = sum(p.n_awake for p in self.partitions)
