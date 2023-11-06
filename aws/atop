@@ -295,7 +295,7 @@ class ClusterDisplay:
 
 @click.command()
 @click.option("-l", "--loop", type=float, default=2, help="Loop every N seconds.")
-def main(loop):
+def main(loop: float) -> None:
     # Get nodes
     scontrol, squeue_running, _ = get_scontrol_squeue()
 
